@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ComplaintController;
+use App\Http\Controllers\SupervisorComplaintController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -33,10 +34,12 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
 
 });
 
-Route::middleware(['auth', 'role:SUPERVISOR'])->group(function () {
-    Route::get('/supervisor/complaints', function () {
-        return 'SUPERVISOR complaints';
-    });
+Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')->group(function () {
+    Route::get('/complaints', [SupervisorComplaintController::class, 'index'])
+        ->name('supervisor.complaints.index');
+
+    Route::post('/complaints/{complaint}/assign', [SupervisorComplaintController::class, 'assign'])
+        ->name('supervisor.complaints.assign');
 });
 
 Route::middleware(['auth', 'role:AGENT'])->group(function () {
