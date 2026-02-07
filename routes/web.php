@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\SupervisorComplaintController;
 use App\Http\Controllers\AgentComplaintController;
+use App\Http\Controllers\ComplaintMessageController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::middleware(['auth'])->group(function () {
+
+    Route::post(
+        '/complaints/{complaint}/messages/user',
+        [ComplaintMessageController::class, 'storeUser']
+    )->name('complaints.messages.user');
+
+    Route::post(
+        '/agent/complaints/{complaint}/messages',
+        [ComplaintMessageController::class, 'storeAgent']
+    )->middleware('role:AGENT')->name('agent.complaints.messages');
+});
+
 });
 
 Route::middleware(['auth', 'role:USER'])->group(function () {
