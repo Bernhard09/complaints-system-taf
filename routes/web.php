@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\SupervisorComplaintController;
+use App\Http\Controllers\AgentComplaintController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -38,14 +39,16 @@ Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')->group(func
     Route::get('/complaints', [SupervisorComplaintController::class, 'index'])
         ->name('supervisor.complaints.index');
 
-    Route::post('/complaints/{complaint}/assign', [SupervisorComplaintController::class, 'assign'])
-        ->name('supervisor.complaints.assign');
+    // assign complaint ke department
+    Route::post('/complaints/{complaint}/assign', [SupervisorComplaintController::class, 'assign'])->name('supervisor.complaints.assign');
+
+    // assign complaint ke agent
+    Route::post('/complaints/{complaint}/assign-agent', [SupervisorComplaintController::class, 'assignAgent'])->name('supervisor.complaints.assignAgent');
 });
 
-Route::middleware(['auth', 'role:AGENT'])->group(function () {
-    Route::get('/agent/complaints', function () {
-        return 'AGENT complaints';
-    });
+Route::middleware(['auth', 'role:AGENT'])->prefix('agent')->group(function () {
+    Route::get('/complaints', [AgentComplaintController::class, 'index'])
+        ->name('agent.complaints.index');
 });
 
 

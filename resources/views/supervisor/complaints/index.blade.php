@@ -20,6 +20,8 @@
                     <th class="border p-2">Reason</th>
                     <th class="border p-2">Status</th>
                     <th class="border p-2">Assign Department</th>
+                    <th class="border p-2">Assign Agent</th>
+
                 </tr>
             </thead>
             <tbody>
@@ -34,27 +36,61 @@
                             </span>
                         </td>
                         <td class="border p-2">
-                            <form method="POST"
-                                    action="{{ route('supervisor.complaints.assign', $complaint) }}">
-                                @csrf
-                                <div class="flex gap-2">
-                                    <select name="department_id"
-                                            class="border rounded p-1"
-                                            required>
-                                        <option value="">Select</option>
-                                        @foreach($departments as $dept)
-                                            <option value="{{ $dept->id }}">
-                                                {{ $dept->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <button
-                                        type="submit"
-                                        class="bg-blue-600 text-white px-3 py-1 rounded">
-                                        Assign
-                                    </button>
-                                </div>
-                            </form>
+                            @if(is_null($complaint->department_id))
+                                <form method="POST"
+                                        action="{{ route('supervisor.complaints.assign', $complaint) }}">
+                                    @csrf
+                                    <div class="flex gap-2">
+                                        <select name="department_id"
+                                                class="border rounded p-1"
+                                                required>
+                                            <option value="">Select</option>
+                                            @foreach($departments as $dept)
+                                                <option value="{{ $dept->id }}">
+                                                    {{ $dept->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <button type="submit"
+                                                class="bg-blue-600 text-white px-3 py-1 rounded">
+                                            Assign
+                                        </button>
+                                    </div>
+                                </form>
+                            @else
+                                {{ $complaint->department->name ?? '—' }}
+                                {{-- {{ dd($complaint->department->name) }} --}}
+                            @endif
+                        </td>
+                        <td class="border p-2">
+                            @if(!is_null($complaint->department_id) && is_null($complaint->agent_id))
+                                <form method="POST"
+                                        action="{{ route('supervisor.complaints.assignAgent', $complaint) }}">
+                                    @csrf
+                                    <div class="flex gap-2">
+                                        <select name="agent_id"
+                                                class="border rounded p-1"
+                                                required>
+                                            <option value="">Select Agent</option>
+                                            @foreach($agents as $agent)
+                                                @if($agent->department_id === $complaint->department_id)
+                                                    <option value="{{ $agent->id }}">
+                                                        {{ $agent->name }}
+                                                    </option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                        <button type="submit"
+                                                class="bg-blue-600 text-white px-3 py-1 rounded">
+                                            Assign
+                                        </button>
+                                    </div>
+                                </form>
+                            @elseif(!is_null($complaint->agent_id))
+                                {{ $complaint->agent->name ?? '—' }}
+                            @else
+                                —
+                            @endif
                         </td>
                     </tr>
                 @endforeach
