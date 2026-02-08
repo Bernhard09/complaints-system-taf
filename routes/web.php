@@ -53,7 +53,7 @@ Route::middleware('auth')->group(function () {
         '/agent/complaints/{complaint}/messages',
         [ComplaintMessageController::class, 'storeAgent']
     )->middleware('role:AGENT')
-     ->name('agent.complaints.messages');
+        ->name('agent.complaints.messages');
 
 
 
@@ -82,7 +82,8 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
     Route::post('/complaints', [ComplaintController::class, 'store'])
         ->name('complaints.store');
 
-    // Show complaint (numeric ID only)
+    Route::post('/complaints/{complaint}/confirm', [ComplaintController::class, 'confirmResolution']
+    )->name('complaints.confirm');
 
 });
 
@@ -91,8 +92,7 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
 | SUPERVISOR
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:SUPERVISOR'])
-    ->prefix('supervisor')
+Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')
     ->group(function () {
 
         Route::get('/complaints', [SupervisorComplaintController::class, 'index'])
@@ -114,12 +114,23 @@ Route::middleware(['auth', 'role:SUPERVISOR'])
 | AGENT
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:AGENT'])
-    ->prefix('agent')
+Route::middleware(['auth', 'role:AGENT'])->prefix('agent')
     ->group(function () {
 
         Route::get('/complaints', [AgentComplaintController::class, 'index'])
             ->name('agent.complaints.index');
+
+        Route::post('/complaints/{complaint}/waiting', [AgentComplaintController::class, 'markWaiting'])
+            ->name('agent.complaints.waiting');
+
+        // Request user confirmation
+        Route::post('/complaints/{complaint}/request-confirmation',[AgentComplaintController::class, 'requestConfirmation'])
+            ->name('agent.complaints.requestConfirmation');
+
+        // Close complaint
+        Route::post('/complaints/{complaint}/close',[AgentComplaintController::class, 'close'])
+            ->name('agent.complaints.close');
+
 });
 
 /*

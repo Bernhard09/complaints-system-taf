@@ -53,4 +53,23 @@ class ComplaintController extends Controller
         return view('complaints.show', compact('complaint', 'user'));
     }
 
+    public function confirmResolution(Request $request, Complaint $complaint)
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $user->role === 'USER'
+            && $complaint->user_id === $user->id
+            && $complaint->status === 'WAITING_CONFIRMATION',
+            403
+        );
+
+        $complaint->update([
+            'status' => 'CLOSED',
+            'confirmed_at' => now(),
+        ]);
+
+        return back()->with('success', 'Complaint has been closed. Thank you.');
+    }
+
 }

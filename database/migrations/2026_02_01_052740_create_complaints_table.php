@@ -35,8 +35,9 @@ return new class extends Migration {
                 'ASSIGNED',
                 'IN_PROGRESS',
                 'WAITING_USER',
+                'WAITING_CONFIRMATION',
                 'REALLOCATE_REQUESTED',
-                'RESOLVED'
+                'CLOSED'
             ]);
 
             $table->string('sla_type', 10)->nullable();
