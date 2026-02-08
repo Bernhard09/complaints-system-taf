@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->text('message');
             $table->string('attachment_path')->nullable();
 
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
 
             $table->index('complaint_id');
         });

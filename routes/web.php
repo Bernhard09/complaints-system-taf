@@ -1,70 +1,130 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\SupervisorComplaintController;
 use App\Http\Controllers\AgentComplaintController;
 use App\Http\Controllers\ComplaintMessageController;
+use App\Http\Controllers\ComplaintInternalNoteController;
 
-use Illuminate\Support\Facades\Route;
-
+/*
+|--------------------------------------------------------------------------
+| Public
+|--------------------------------------------------------------------------
+*/
 Route::get('/', function () {
     return view('welcome');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Dashboard
+|--------------------------------------------------------------------------
+*/
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+/*
+|--------------------------------------------------------------------------
+| Authenticated (ALL ROLES)
+|--------------------------------------------------------------------------
+*/
 Route::middleware('auth')->group(function () {
+
+    // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::middleware(['auth'])->group(function () {
+    Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])
+        ->whereNumber('complaint')
+        ->name('complaints.show');
 
+    // User sends message
     Route::post(
         '/complaints/{complaint}/messages/user',
         [ComplaintMessageController::class, 'storeUser']
     )->name('complaints.messages.user');
 
+    // Agent sends message
     Route::post(
         '/agent/complaints/{complaint}/messages',
         [ComplaintMessageController::class, 'storeAgent']
-    )->middleware('role:AGENT')->name('agent.complaints.messages');
+    )->middleware('role:AGENT')
+     ->name('agent.complaints.messages');
+
+
+
+    Route::post(
+        '/complaints/{complaint}/internal-notes',
+        [ComplaintInternalNoteController::class, 'storeAgent']
+    )->middleware('role:AGENT,SUPERVISOR')
+    ->name('complaints.internal-notes.store');
 });
 
-});
-
+/*
+|--------------------------------------------------------------------------
+| USER
+|--------------------------------------------------------------------------
+*/
 Route::middleware(['auth', 'role:USER'])->group(function () {
+
     Route::get('/complaints', function () {
         return 'USER complaints';
     });
 
+    // IMPORTANT: create BEFORE {complaint}
     Route::get('/complaints/create', [ComplaintController::class, 'create'])
         ->name('complaints.create');
 
     Route::post('/complaints', [ComplaintController::class, 'store'])
         ->name('complaints.store');
 
+    // Show complaint (numeric ID only)
 
 });
 
-Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')->group(function () {
-    Route::get('/complaints', [SupervisorComplaintController::class, 'index'])
-        ->name('supervisor.complaints.index');
+/*
+|--------------------------------------------------------------------------
+| SUPERVISOR
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:SUPERVISOR'])
+    ->prefix('supervisor')
+    ->group(function () {
 
-    // assign complaint ke department
-    Route::post('/complaints/{complaint}/assign', [SupervisorComplaintController::class, 'assign'])->name('supervisor.complaints.assign');
+        Route::get('/complaints', [SupervisorComplaintController::class, 'index'])
+            ->name('supervisor.complaints.index');
 
-    // assign complaint ke agent
-    Route::post('/complaints/{complaint}/assign-agent', [SupervisorComplaintController::class, 'assignAgent'])->name('supervisor.complaints.assignAgent');
+        Route::post(
+            '/complaints/{complaint}/assign',
+            [SupervisorComplaintController::class, 'assign']
+        )->name('supervisor.complaints.assign');
+
+        Route::post(
+            '/complaints/{complaint}/assign-agent',
+            [SupervisorComplaintController::class, 'assignAgent']
+        )->name('supervisor.complaints.assignAgent');
 });
 
-Route::middleware(['auth', 'role:AGENT'])->prefix('agent')->group(function () {
-    Route::get('/complaints', [AgentComplaintController::class, 'index'])
-        ->name('agent.complaints.index');
+/*
+|--------------------------------------------------------------------------
+| AGENT
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:AGENT'])
+    ->prefix('agent')
+    ->group(function () {
+
+        Route::get('/complaints', [AgentComplaintController::class, 'index'])
+            ->name('agent.complaints.index');
 });
 
-
+/*
+|--------------------------------------------------------------------------
+| Auth Routes (Breeze)
+|--------------------------------------------------------------------------
+*/
 require __DIR__.'/auth.php';

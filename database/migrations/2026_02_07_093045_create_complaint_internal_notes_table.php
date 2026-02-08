@@ -19,9 +19,7 @@ return new class extends Migration {
                 ->cascadeOnDelete();
 
             $table->enum('author_role', ['SUPERVISOR', 'AGENT']);
-
             $table->text('note');
-
             $table->timestamps();
         });
     }

@@ -34,4 +34,23 @@ class ComplaintController extends Controller
             ->route('complaints.create')
             ->with('success', 'Complaint submitted successfully.');
     }
+    public function show(Request $request, Complaint $complaint)
+    {
+        $user = $request->user();
+
+        // Security
+        $isOwner = $user->role === 'USER' && $complaint->user_id === $user->id;
+        $isAgent = $user->role === 'AGENT' && $complaint->agent_id === $user->id;
+        $isSupervisor = $user->role === 'SUPERVISOR';
+
+        abort_unless($isOwner || $isAgent || $isSupervisor, 403);
+
+        $complaint->load([
+            'messages.sender',
+            'internalNotes.author',
+        ]);
+
+        return view('complaints.show', compact('complaint', 'user'));
+    }
+
 }
