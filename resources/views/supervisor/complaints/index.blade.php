@@ -1,3 +1,8 @@
+@php
+    $responseBreachedIds = $responseBreached;
+    $resolutionBreachedIds = $resolutionBreached;
+@endphp
+
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl">
@@ -21,20 +26,33 @@
                     <th class="border p-2">Status</th>
                     <th class="border p-2">Assign Department</th>
                     <th class="border p-2">Assign Agent</th>
+                    <th class="border p-2">SLA</th>
+
 
                 </tr>
             </thead>
             <tbody>
                 @foreach($complaints as $complaint)
-                    <tr>
+                    <tr class="
+                            @if(in_array($complaint->id, $resolutionBreachedIds))
+                                bg-red-100
+                            @elseif(in_array($complaint->id, $responseBreachedIds))
+                                bg-yellow-100
+                            @endif
+                    ">
+                        {{-- ID --}}
                         <td class="border p-2">{{ $complaint->id }}</td>
+                        {{-- Contract Number --}}
                         <td class="border p-2">{{ $complaint->contract_number }}</td>
+                        {{-- Complaint Reason   --}}
                         <td class="border p-2">{{ $complaint->complaint_reason }}</td>
+                        {{-- Status --}}
                         <td class="border p-2">
                             <span class="px-2 py-1 text-sm rounded bg-yellow-100">
                                 {{ $complaint->status }}
                             </span>
                         </td>
+                        {{-- Assign Department --}}
                         <td class="border p-2">
                             @if(is_null($complaint->department_id))
                                 <form method="POST"
@@ -59,9 +77,9 @@
                                 </form>
                             @else
                                 {{ $complaint->department->name ?? '—' }}
-                                {{-- {{ dd($complaint->department->name) }} --}}
                             @endif
                         </td>
+                        {{-- Assign Agent --}}
                         <td class="border p-2">
                             @if(!is_null($complaint->department_id) && is_null($complaint->agent_id))
                                 <form method="POST"
@@ -92,6 +110,23 @@
                                 —
                             @endif
                         </td>
+                        {{-- SLA Status --}}
+                        <td class="border p-2 text-sm">
+                            @if(in_array($complaint->id, $resolutionBreachedIds))
+                                <span class="px-2 py-1 rounded bg-red-600 text-white">
+                                    RESOLUTION SLA BREACHED
+                                </span>
+                            @elseif(in_array($complaint->id, $responseBreachedIds))
+                                <span class="px-2 py-1 rounded bg-yellow-500 text-black">
+                                    RESPONSE SLA BREACHED
+                                </span>
+                            @else
+                                <span class="px-2 py-1 rounded bg-green-100 text-green-700">
+                                    OK
+                                </span>
+                            @endif
+                        </td>
+
                     </tr>
                 @endforeach
             </tbody>

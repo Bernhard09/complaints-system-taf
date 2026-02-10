@@ -56,10 +56,13 @@ class ComplaintMessageController extends Controller
             'message'     => $validated['message'],
         ]);
 
-        // Agent menunggu user
-        $complaint->update([
-            'status' => 'WAITING_USER',
-        ]);
+        // Jika status masih ASSIGNED, ubah ke IN_PROGRESS
+        if ($complaint->status === 'ASSIGNED' && is_null($complaint->first_response_at)) {
+            $complaint->update([
+                'status' => 'IN_PROGRESS',
+                'first_response_at' => now(),
+            ]);
+        }
 
         return back();
     }

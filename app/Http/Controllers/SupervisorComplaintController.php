@@ -22,9 +22,17 @@ public function index()
     // semua agent, nanti difilter di view
     $agents = User::where('role', 'AGENT')->get();
 
+    $responseBreached = Complaint::responseSlaBreached()->pluck('id')->toArray();
+    $resolutionBreached = Complaint::resolutionSlaBreached()->pluck('id')->toArray();
+
     return view(
         'supervisor.complaints.index',
-        compact('complaints', 'departments', 'agents')
+        compact(
+            'complaints',
+            'departments',
+            'agents',
+            'responseBreached',
+            'resolutionBreached')
     );
 }
 
@@ -48,6 +56,9 @@ public function index()
     // Assign complaint ke agent
     public function assignAgent(Request $request, Complaint $complaint)
     {
+
+        $assignedAt = now();
+
         $validated = $request->validate([
             'agent_id' => ['required', 'exists:users,id'],
         ]);
@@ -60,7 +71,12 @@ public function index()
 
         $complaint->update([
             'agent_id' => $agent->id,
-            'status'   => 'IN_PROGRESS',
+            'status'   => 'ASSIGNED',
+
+            // SLA start
+            'assigned_at' => $assignedAt,
+            'sla_response_deadline' => $assignedAt->copy()->addHours(24),
+            'sla_resolution_deadline' => $assignedAt->copy()->addDays(3),
         ]);
 
         return back()->with('success', 'Complaint assigned to agent.');
