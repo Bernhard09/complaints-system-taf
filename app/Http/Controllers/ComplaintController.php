@@ -72,4 +72,23 @@ class ComplaintController extends Controller
         return back()->with('success', 'Complaint has been closed. Thank you.');
     }
 
+    public function cancel(Request $request, Complaint $complaint)
+    {
+        $user = $request->user();
+        abort_unless(
+            $user->id === $complaint->user_id
+            && $complaint->status === 'SUBMITTED',
+            403
+        );
+
+        $complaint->update([
+            'status' => 'CANCELLED',
+        ]);
+
+        return redirect()
+            ->route('user.dashboard')
+            ->with('success', 'Complaint cancelled.');
+    }
+
+
 }

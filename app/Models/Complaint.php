@@ -7,14 +7,24 @@ use Illuminate\Database\Eloquent\Builder;
 
 class Complaint extends Model
 {
-    protected $fillable =  [
+    protected $fillable = [
         'user_id',
         'contract_number',
         'complaint_reason',
         'description',
-        'status',
         'department_id',
         'agent_id',
+        'status',
+
+        // SLA
+        'assigned_at',
+        'first_response_at',
+        'sla_response_deadline',
+        'sla_resolution_deadline',
+
+        // Escalation
+        'escalation_level',
+        'escalated_at',
     ];
 
     public function department()
@@ -37,6 +47,8 @@ class Complaint extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+
 
     public function isResponseSlaBreached(): bool
     {
@@ -68,6 +80,72 @@ class Complaint extends Model
             ->whereNotIn('status', ['RESOLVED'])
             ->whereNotNull('sla_resolution_deadline')
             ->where('sla_resolution_deadline', '<', now());
+    }
+
+
+    public function evaluateEscalation(): ?string
+    {
+        // Response SLA breach → L1
+        $now = now();
+
+        /**
+         * ESCALATION LEVEL 1
+         * Response SLA breached
+         * - agent belum merespons
+         * - deadline response lewat
+         */
+        if (
+            is_null($this->first_response_at)
+            && $this->sla_response_deadline
+            && $now->greaterThan($this->sla_response_deadline)
+            && $this->escalation_level !== 'ESCALATION_L1'
+            && $this->escalation_level !== 'ESCALATION_L2'
+        ) {
+            $this->update([
+                'escalation_level' => 'ESCALATION_L1',
+                'escalated_at' => $now,
+            ]);
+
+            return 'ESCALATION_L1';
+        }
+
+        /**
+         * ESCALATION LEVEL 2
+         * Resolution SLA breached
+         * - complaint belum CLOSED / RESOLVED
+         * - deadline resolution lewat
+         */
+        if (
+            $this->status !== 'RESOLVED'
+            && $this->sla_resolution_deadline
+            && $now->greaterThan($this->sla_resolution_deadline)
+        ) {
+            $this->update([
+                'escalation_level' => 'ESCALATION_L2',
+                'escalated_at' => $now,
+            ]);
+            return 'ESCALATION_L2';
+        }
+
+        // =========================
+        // ESCALATION LEVEL 3
+        // Still unresolved
+        // =========================
+
+        if (
+            $this->escalation_level === 'ESCALATION_L2'
+            && $this->sla_resolution_deadline
+            && $now->greaterThan($this->sla_resolution_deadline->addHours(24))
+        ) {
+            $this->update([
+                'escalation_level' => 'ESCALATION_L3',
+                'escalated_at'     => $now,
+            ]);
+
+            return 'ESCALATION_L3';
+        }
+
+        return null;
     }
 
 }

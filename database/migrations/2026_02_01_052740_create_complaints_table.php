@@ -37,6 +37,7 @@ return new class extends Migration {
                 'WAITING_USER',
                 'WAITING_CONFIRMATION',
                 'REALLOCATE_REQUESTED',
+                'CANCELLED',
                 'RESOLVED'
             ]);
 

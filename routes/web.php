@@ -83,7 +83,11 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
         ->name('complaints.store');
 
     Route::post('/complaints/{complaint}/confirm', [ComplaintController::class, 'confirmResolution']
-    )->name('complaints.confirm');
+        )->name('complaints.confirm');
+
+    // cancel complaint
+    Route::post('/complaints/{complaint}/cancel', [ComplaintController::class, 'cancel']
+        )->name('complaints.cancel');
 
 });
 

@@ -24,7 +24,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('complaints', function (Blueprint $table) {
-            //
+            $table->dropColumn([
+                'escalation_level',
+                'escalated_at',
+            ]);
         });
     }
 };
