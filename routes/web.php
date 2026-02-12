@@ -1,12 +1,20 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
+/* Controllers */
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\SupervisorComplaintController;
 use App\Http\Controllers\AgentComplaintController;
 use App\Http\Controllers\ComplaintMessageController;
 use App\Http\Controllers\ComplaintInternalNoteController;
+use App\Http\Controllers\DashboardController;
+
+/* Models */
+use App\Models\Complaint;
+
+use Illuminate\Support\Facades\Auth;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +31,17 @@ Route::get('/', function () {
 |--------------------------------------------------------------------------
 */
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    //return view('dashboard');
+
+    $user = Auth::user();
+
+    return match ($user->role) {
+        'USER' => redirect()->route('user.dashboard'),
+        'SUPERVISOR' => redirect()->route('supervisor.dashboard'),
+        'AGENT' => redirect()->route('agent.dashboard'),
+        default => view('dashboard'),
+    };
+
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 /*
@@ -71,6 +89,11 @@ Route::middleware('auth')->group(function () {
 */
 Route::middleware(['auth', 'role:USER'])->group(function () {
 
+
+    // User dashboard
+    Route::get('/user/dashboard', [DashboardController::class, 'user'])
+        ->name('user.dashboard');
+
     Route::get('/complaints', function () {
         return 'USER complaints';
     });
@@ -82,6 +105,7 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
     Route::post('/complaints', [ComplaintController::class, 'store'])
         ->name('complaints.store');
 
+    // confirm resolution
     Route::post('/complaints/{complaint}/confirm', [ComplaintController::class, 'confirmResolution']
         )->name('complaints.confirm');
 
@@ -99,8 +123,8 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
 Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')
     ->group(function () {
 
-        Route::get('/complaints', [SupervisorComplaintController::class, 'index'])
-            ->name('supervisor.complaints.index');
+        Route::get('/supervisor/dashboard', [DashboardController::class, 'supervisor'])
+            ->name('supervisor.dashboard.index');
 
         Route::post(
             '/complaints/{complaint}/assign',
@@ -121,19 +145,24 @@ Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')
 Route::middleware(['auth', 'role:AGENT'])->prefix('agent')
     ->group(function () {
 
-        Route::get('/complaints', [AgentComplaintController::class, 'index'])
-            ->name('agent.complaints.index');
 
-        Route::post('/complaints/{complaint}/waiting', [AgentComplaintController::class, 'markWaiting'])
-            ->name('agent.complaints.waiting');
+    Route::get('/dashboard', [DashboardController::class, 'agent'])
+        ->name('agent.dashboard');
 
-        // Request user confirmation
-        Route::post('/complaints/{complaint}/request-confirmation',[AgentComplaintController::class, 'requestConfirmation'])
-            ->name('agent.complaints.requestConfirmation');
 
-        // Close complaint
-        Route::post('/complaints/{complaint}/close',[AgentComplaintController::class, 'close'])
-            ->name('agent.complaints.close');
+    Route::get('/complaints', [AgentComplaintController::class, 'index'])
+        ->name('agent.complaints.index');
+
+    Route::post('/complaints/{complaint}/waiting', [AgentComplaintController::class, 'markWaiting'])
+        ->name('agent.complaints.waiting');
+
+    // Request user confirmation
+    Route::post('/complaints/{complaint}/request-confirmation',[AgentComplaintController::class, 'requestConfirmation'])
+        ->name('agent.complaints.requestConfirmation');
+
+    // Close complaint
+    Route::post('/complaints/{complaint}/close',[AgentComplaintController::class, 'close'])
+        ->name('agent.complaints.close');
 
 });
 

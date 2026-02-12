@@ -16,11 +16,29 @@ class ComplaintController extends Controller
     // Simpan complaint
     public function store(Request $request)
     {
+
+        $user = $request->user();
         $validated = $request->validate([
             'contract_number' => ['required', 'digits_between:10,15'],
             'complaint_reason' => ['required', 'string', 'max:100'],
             'description' => ['required', 'string'],
         ]);
+
+        $activeExists = Complaint::where('user_id', $user->id)
+            ->where('contract_number', $validated['contract_number'])
+            ->whereIn('status', [
+                'SUBMITTED',
+                'ASSIGNED',
+                'IN_PROGRESS',
+                'WAITING_USER',
+            ])->exists();
+        if ($activeExists) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'contract_number' => 'There is already an active complaint for this contract.',
+                    ]);
+        }
 
         Complaint::create([
             'user_id' => $request->user()->id,
@@ -42,6 +60,9 @@ class ComplaintController extends Controller
         $isOwner = $user->role === 'USER' && $complaint->user_id === $user->id;
         $isAgent = $user->role === 'AGENT' && $complaint->agent_id === $user->id;
         $isSupervisor = $user->role === 'SUPERVISOR';
+
+
+
 
         abort_unless($isOwner || $isAgent || $isSupervisor, 403);
 
