@@ -17,6 +17,10 @@ class ComplaintMessageController extends Controller
             403
         );
 
+        if ($complaint->status === 'SUBMITTED' ) {
+            return back()->with('error', 'Please wait until an agent is assigned.');
+        }
+
         $validated = $request->validate([
             'message' => ['required', 'string'],
         ]);
@@ -27,10 +31,17 @@ class ComplaintMessageController extends Controller
             'message'     => $validated['message'],
         ]);
 
+
+        if ($complaint->status === 'ASSIGNED' ) {
+            return back();
+        }
+
         // User sudah membalas → agent bisa lanjut
         $complaint->update([
             'status' => 'IN_PROGRESS',
         ]);
+
+
 
         return back();
     }
@@ -45,6 +56,8 @@ class ComplaintMessageController extends Controller
             $complaint->agent_id !== $user->id,
             403
         );
+
+
 
         $validated = $request->validate([
             'message' => ['required', 'string'],

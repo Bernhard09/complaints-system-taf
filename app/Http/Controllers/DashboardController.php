@@ -11,11 +11,35 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        $complaints = Complaint::where('user_id', $user->id)
+        $complaints = Complaint::where('user_id', $user->id);
+
+        $ongoing = (clone $complaints)
+            ->whereIn('status', ['SUBMITTED', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_USER'])
+            ->count();
+
+        $resolved = (clone $complaints)
+            ->where('status', 'RESOLVED')
+            ->count();
+
+        $waiting = (clone $complaints)
+            ->where('status', 'WAITING_USER')
+            ->count();
+
+        $total = $complaints->count();
+
+        $recent = (clone $complaints)
             ->latest()
+            ->take(3)
             ->get();
 
-        return view('user.dashboard', compact('complaints'));
+        return view('user.dashboard', compact(
+            'ongoing',
+            'resolved',
+            'waiting',
+            'total',
+            'recent',
+            'complaints'
+        ));
     }
 
     public function agent(Request $request)
@@ -33,6 +57,6 @@ class DashboardController extends Controller
     {
         $complaints = Complaint::latest()->get();
 
-        return view('supervisor.dashboard', compact('complaints'));
+        return view('supervisor.dashboard.index', compact('complaints'));
     }
 }

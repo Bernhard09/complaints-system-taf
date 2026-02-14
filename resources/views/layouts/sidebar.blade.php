@@ -1,53 +1,41 @@
-<div id="sidebar"
-     class="w-64 bg-white shadow-md transition-all duration-300 flex flex-col">
+<div class="p-6 space-y-6">
 
-    {{-- Header --}}
-    <div class="h-16 flex items-center justify-between px-4 border-b">
-        <span class="font-bold sidebar-text">Complaint System</span>
-
-        <button id="sidebarToggle" class="text-gray-500 justify-center hover:text-black">
-            ☰
-        </button>
+    <div class="text-xl font-bold">
+        Complaint System
     </div>
 
-    <nav class="flex-1 p-3 space-y-2 text-sm">
-
+    <nav class="space-y-2">
         @if(auth()->user()->role === 'USER')
             <a href="{{ route('user.dashboard') }}"
-                class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
-                <span>🏠</span>
-                <span class="sidebar-text">Dashboard</span>
+                class="block px-3 py-2 rounded-lg hover:bg-gray-100">
+                Dashboard
             </a>
-            
+
             <a href="{{ route('complaints.create') }}"
-                class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
-                <span>➕</span>
-                <span class="sidebar-text">New Complaint</span>
+                class="block px-3 py-2 rounded-lg hover:bg-gray-100">
+                New Complaint
             </a>
         @endif
 
         @if(auth()->user()->role === 'AGENT')
             <a href="{{ route('agent.complaints.index') }}"
-                class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
-                <span>📂</span>
-                <span class="sidebar-text">My Assigned</span>
+                class="block px-3 py-2 rounded-lg hover:bg-gray-100">
+                My Assigned
             </a>
         @endif
 
         @if(auth()->user()->role === 'SUPERVISOR')
             <a href="{{ route('supervisor.complaints.index') }}"
-                class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
-                <span>📊</span>
-                <span class="sidebar-text">Incoming</span>
+                class="block px-3 py-2 rounded-lg hover:bg-gray-100">
+                Incoming
             </a>
         @endif
-
     </nav>
 
-    <div class="p-3 border-t">
+    <div class="pt-6 border-t">
         <form method="POST" action="{{ route('logout') }}">
             @csrf
-            <button class="flex items-center gap-3 text-red-500 w-full">
+            <button class="block px-3 py-2 rounded-lg text-red-500 w-full hover:bg-gray-100">
                 Logout
             </button>
         </form>
@@ -55,17 +43,4 @@
 
 </div>
 
-<script>
-document.getElementById('sidebarToggle')
-?.addEventListener('click', function () {
-
-    const sidebar = document.getElementById('sidebar');
-    const texts = document.querySelectorAll('.sidebar-text');
-
-    sidebar.classList.toggle('w-64');
-    sidebar.classList.toggle('w-16');
-
-    texts.forEach(el => el.classList.toggle('hidden'));
-});
-</script>
 

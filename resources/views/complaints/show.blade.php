@@ -10,48 +10,343 @@
         </h2>
     </x-slot>
 
-    <div class="max-w-4xl mx-auto space-y-6">
 
-    @if(in_array($user->role, ['USER', 'AGENT', 'SUPERVISOR']))
-    <div class="bg-white border rounded p-4 space-y-3">
-        <h3 class="font-semibold">Conversation</h3>
+    <div class="mx-auto w-full max-w-screen-2xl px-10 py-8">
 
-        @foreach($complaint->messages as $msg)
-            <div class="flex {{ $msg->sender_id === $user->id ? 'justify-end' : 'justify-start' }}">
-                <div class="max-w-xs p-3 rounded
-                    {{ $msg->sender_role === 'USER'
-                        ? 'bg-gray-100'
-                        : 'bg-blue-100 text-blue-900' }}">
-                    <p class="text-sm">{{ $msg->message }}</p>
-                    <span class="text-xs text-gray-500">
-                        {{ $msg->created_at->diffForHumans() }}
-                    </span>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            {{-- LEFT SIDE: CHAT --}}
+            <div class="lg:col-span-2 space-y-6">
+
+                {{-- Conversation Card --}}
+                <x-ui.card>
+                    <h3 class="font-semibold mb-4">Conversation</h3>
+
+                    <div id="chatBox"
+                        class="h-[500px] overflow-y-auto space-y-4 pr-2">
+
+                        @if($complaint->status === 'SUBMITTED')
+                        <div class="text-gray-500 text-center h-full flex flex-col items-center justify-center">
+                            <p class="text-md"> Waiting for agent assignment... </p>
+                            <p class="text-xs"> You will be notified once an agent is assigned. </p>
+                        </div>
+                        @else
+
+                            {{-- form chat --}}
+
+                            @foreach($complaint->messages as $msg)
+                                <div class="flex {{ $msg->sender_id === auth()->id() ? 'justify-end' : 'justify-start' }}">
+
+                                    <div class="max-w-md px-4 py-3 rounded-2xl
+                                        {{ $msg->sender_id === auth()->id()
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-gray-100 text-gray-800' }}">
+
+                                        <p class="text-sm">{{ $msg->message }}</p>
+
+                                        <p class="text-[10px] mt-2 opacity-70">
+                                            {{ $msg->created_at->diffForHumans() }}
+                                        </p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @endif
+
+                    </div>
+
+                    @if($complaint->status !== 'SUBMITTED')
+                    <form method="POST"
+                        action="{{ route('complaints.messages.user', $complaint) }}"
+                        class="mt-4 flex gap-3">
+                        @csrf
+
+                        <input name="message"
+                            class="flex-1 border rounded-xl px-4 py-2"
+                            placeholder="Type your message..."
+                            required />
+
+                        <x-ui.button>Send</x-ui.button>
+                    </form>
+                    @endif
+                </x-ui.card>
+
+            </div>
+
+            {{-- RIGHT SIDE: INFO PANEL --}}
+            <div class="space-y-6">
+
+                <div class="sticky top-6 space-y-6">
+                    @if($complaint->sla_resolution_deadline)
+                    <x-ui.card>
+                        <h3 class="font-semibold mb-4">SLA</h3>
+
+                        @php
+                            $deadline = $complaint->sla_resolution_deadline;
+                            $isBreached = now()->greaterThan($deadline);
+                        @endphp
+
+                        <p class="text-sm">
+                            Resolution Deadline:
+                        </p>
+
+                        <p class="mt-1 font-semibold {{ $isBreached ? 'text-red-600' : 'text-gray-700' }}">
+                            {{ $deadline->format('d M Y H:i') }}
+                        </p>
+
+                        @if(!$isBreached)
+                            <p class="text-xs text-gray-500 mt-2">
+                                {{ $deadline->diffForHumans() }}
+                            </p>
+                        @else
+                            <p class="text-xs text-red-500 mt-2">
+                                SLA Breached
+                            </p>
+                        @endif
+                    </x-ui.card>
+                    @endif
+
+                    {{-- Complaint Info --}}
+                    <x-ui.card>
+                        <h3 class="font-semibold mb-4">Complaint Info</h3>
+
+                        <div class="space-y-4 text-sm">
+
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase">Ticket</p>
+                                <p class="font-semibold">#{{ $complaint->id }}</p>
+                            </div>
+
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase">Contract</p>
+                                <p>{{ $complaint->contract_number }}</p>
+                            </div>
+
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase">Status</p>
+                                <x-ui.status-badge :status="$complaint->status" />
+                            </div>
+
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase">Reason</p>
+                                <p>{{ $complaint->complaint_reason }}</p>
+                            </div>
+
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase">Description</p>
+                                <p class="text-gray-600">
+                                    {{ $complaint->description }}
+                                </p>
+                            </div>
+
+                        </div>
+                    </x-ui.card>
+
+                    {{-- Agent Info --}}
+                    <x-ui.card>
+                        <h3 class="font-semibold mb-4">Assigned Agent</h3>
+
+                        @if($complaint->status === 'SUBMITTED')
+                            <p class="text-amber-600 text-sm">
+                                Waiting for agent assignment
+                            </p>
+                        @else
+                            <div class="space-y-3 text-sm">
+                                <div>
+                                    <p class="text-gray-400 text-xs uppercase">Name</p>
+                                    <p class="font-semibold">
+                                        {{ $complaint->agent->name ?? '-' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-400 text-xs uppercase">Department</p>
+                                    <p>
+                                        {{ $complaint->agent->department->name ?? '-' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-400 text-xs uppercase">Agent ID</p>
+                                    <p>
+                                        {{ $complaint->agent->id ?? '-' }}
+                                    </p>
+                                </div>
+                            </div>
+                        @endif
+                    </x-ui.card>
+                    <x-ui.card>
+                        <h3 class="font-semibold mb-4">Activity</h3>
+
+                        <div class="space-y-4 text-sm">
+
+                            <div>
+                                <p class="text-gray-500">
+                                    Complaint submitted
+                                </p>
+                                <p class="text-xs text-gray-400">
+                                    {{ $complaint->created_at->diffForHumans() }}
+                                </p>
+                            </div>
+
+                            @if($complaint->assigned_at)
+                            <div>
+                                <p class="text-gray-500">
+                                    Assigned to agent
+                                </p>
+                                <p class="text-xs text-gray-400">
+                                    {{ $complaint->assigned_at->diffForHumans() }}
+                                </p>
+                            </div>
+                            @endif
+
+                            @if($complaint->first_response_at)
+                            <div>
+                                <p class="text-gray-500">
+                                    Agent responded
+                                </p>
+                                <p class="text-xs text-gray-400">
+                                    {{ $complaint->first_response_at->diffForHumans() }}
+                                </p>
+                            </div>
+                            @endif
+
+                            @if($complaint->confirmed_at)
+                            <div>
+                                <p class="text-gray-500">
+                                    Resolved
+                                </p>
+                                <p class="text-xs text-gray-400">
+                                    {{ $complaint->confirmed_at->diffForHumans() }}
+                                </p>
+                            </div>
+                            @endif
+
+                        </div>
+                    </x-ui.card>
                 </div>
             </div>
-        @endforeach
-        @if($user->role === 'SUPERVISOR')
-            <p class="text-sm text-gray-500 italic">
-                Supervisor view (read-only)
-            </p>
-        @endif
+
+        </div>
     </div>
+    {{-- <div class="max-w-6xl mx-auto space-y-6">
+
+
+        <x-ui.card>
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs text-gray-400 uppercase">Contract</p>
+                <p class="font-semibold">{{ $complaint->contract_number }}</p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-400 uppercase">Ticket ID</p>
+                <p class="font-semibold">#{{ $complaint->id }}</p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-400 uppercase">Status</p>
+                <x-ui.status-badge :status="$complaint->status"/>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-400 uppercase">Reason</p>
+                <p class="text-gray-700">{{ $complaint->complaint_reason }}</p>
+            </div>
+
+            <div class="col-span-2">
+                <p class="text-xs text-gray-400 uppercase">Description</p>
+                <p class="text-gray-700">{{ $complaint->description }}</p>
+            </div>
+        </div>
+    </x-ui.card>
+
+    @if ($user->role == 'USER')
+    <x-ui.card>
+        @if($complaint->status === 'SUBMITTED')
+            <p class="text-amber-600 font-medium">
+                Waiting for agent assignment
+            </p>
+            <p class="text-sm text-gray-500 mt-1">
+                Our team will review your complaint shortly.
+            </p>
+        @else
+            <div>
+                <p class="text-xs text-gray-400 uppercase">Assigned Agent</p>
+                <p class="font-semibold">
+                    {{ $complaint->agent->name ?? '-' }}
+                </p>
+                <p class="text-sm text-gray-500">
+                    {{ $complaint->agent->department->name ?? '' }}
+                </p>
+            </div>
+        @endif
+    </x-ui.card>
     @endif
 
-    @if($user->role === 'USER')
-    <form method="POST"
-        action="{{ route('complaints.messages.user', $complaint) }}"
-        class="flex gap-2">
-        @csrf
-        <input name="message"
-            class="flex-1 border rounded p-2"
-            placeholder="Type your message..."
-            required>
-        <button class="bg-blue-600 text-white px-4 rounded">
-            Send
-        </button>
-    </form>
 
-    @endif
+
+
+
+    @if(in_array($user->role, ['USER', 'AGENT', 'SUPERVISOR']))
+    <h3 class="font-semibold">Conversation</h3>
+    <div class="bg-white border rounded p-4 h-96 overflow-y-auto space-y-4
+        {{ $complaint->status === 'SUBMITTED' ? 'flex flex-col justify-between ' : '' }}"
+        id="chatBox">
+        @if($complaint->status === 'SUBMITTED')
+
+            <div class="text-gray-500 text-center h-full flex flex-col items-center justify-center">
+                <p class="text-md"> Waiting for agent assignment... </p>
+                <p class="text-xs"> You will be notified once an agent is assigned. </p>
+            </div>
+            {{-- <div class="flex items-center">
+                <div class="flex-1 border rounded p-2  text-gray-300">Type your message...</div>
+                <div class="bg-blue-400 ml-2 text-gray-100 px-4 py-2 rounded cursor-pointerw">
+                    Send
+                </div>
+            </div> --}}
+
+        {{-- @else
+            {{-- form chat --}}
+            {{-- @foreach($complaint->messages as $msg)
+                <div class="flex {{ $msg->sender_id === $user->id ? 'justify-end' : 'justify-start' }}">
+                    <div class="max-w-xs p-3 rounded
+                        {{ $msg->sender_role === 'USER'
+                            ? 'bg-gray-100'
+                            : 'bg-blue-100 text-blue-900' }}">
+                        <p class="text-sm">{{ $msg->message }}</p>
+                        <span class="text-xs text-gray-500">
+                            {{ $msg->created_at->diffForHumans() }}
+                        </span>
+                    </div>
+                </div>
+            @endforeach
+            @if($user->role === 'SUPERVISOR')
+                <p class="text-sm text-gray-500 italic">
+                    Supervisor view (read-only)
+                </p>
+            @endif
+        </div>
+        @endif
+        @endif
+
+        @if($user->role === 'USER')
+        <form method="POST"
+            action="{{ route('complaints.messages.user', $complaint) }}"
+            class="flex gap-2">
+            @csrf
+            <input name="message"
+                class="flex-1 border rounded p-2 {{ $complaint->status === 'SUBMITTED' ? 'opacity-50 cursor-not-allowed border-opacity-12' : '' }}"
+                placeholder="Type your message..."
+                {{ $complaint->status === 'SUBMITTED' ? 'disabled' : 'required' }}>
+            <button class=" text-white px-4 rounded {{ $complaint->status === 'SUBMITTED' ? 'opacity-50 cursor-not-allowed bg-blue-400' : 'bg-blue-600 hover:bg-blue-700' }}"
+                {{ $complaint->status === 'SUBMITTED' ? 'disabled'
+                : '' }}>
+                Send
+            </button>
+        </form>
+        @endif --}}
+
+
 
     @if($user->role === 'USER' && $complaint->status === 'WAITING_CONFIRMATION')
     <form method="POST"
@@ -177,3 +472,12 @@
     </div>
     @endif
 </x-app-layout>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const chatBox = document.getElementById("chatBox");
+        if (chatBox) {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    });
+</script>

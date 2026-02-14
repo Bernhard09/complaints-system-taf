@@ -37,7 +37,7 @@ Route::get('/dashboard', function () {
 
     return match ($user->role) {
         'USER' => redirect()->route('user.dashboard'),
-        'SUPERVISOR' => redirect()->route('supervisor.dashboard'),
+        'SUPERVISOR' => redirect()->route('supervisor.dashboard.index'),
         'AGENT' => redirect()->route('agent.dashboard'),
         default => view('dashboard'),
     };

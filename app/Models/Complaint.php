@@ -27,6 +27,15 @@ class Complaint extends Model
         'escalated_at',
     ];
 
+    protected $casts = [
+        'assigned_at' => 'datetime',
+        'first_response_at' => 'datetime',
+        'confirmed_at' => 'datetime',
+        'sla_response_deadline' => 'datetime',
+        'sla_resolution_deadline' => 'datetime',
+        'escalated_at' => 'datetime',
+    ];
+
     public function department()
     {
         return $this->belongsTo(Department::class);
@@ -48,8 +57,12 @@ class Complaint extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function agent()
+    {
+        return $this->belongsTo(User::class, 'agent_id');
+    }
 
-
+     // SLA Breach Checkers
     public function isResponseSlaBreached(): bool
     {
         return $this->status === 'ASSIGNED'
