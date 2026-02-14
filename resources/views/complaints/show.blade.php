@@ -141,6 +141,39 @@
                         </div>
                     </x-ui.card>
 
+                    {{-- Attachments Preview --}}
+                    {{-- @if($complaint->attachments->count())
+                    <x-ui.card class="mt-6">
+                        <h3 class="text-sm font-semibold mb-3">Attachments</h3>
+
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+
+                            @foreach($complaint->attachments as $file)
+                                <div class="border rounded-lg p-3 text-sm bg-gray-50">
+
+                                    @if(Str::startsWith($file->mime_type, 'image'))
+                                        <img
+                                            src="{{ asset('storage/'.$file->file_path) }}"
+                                            class="w-full h-32 object-cover rounded mb-2"
+                                        >
+                                    @endif
+
+                                    <p class="truncate">{{ $file->original_name }}</p>
+
+                                    <a
+                                        href="{{ route('attachments.download', $file) }}"
+                                        class="text-indigo-600 text-xs mt-2 inline-block"
+                                    >
+                                        Download
+                                    </a>
+                                </div>
+                            @endforeach
+
+                        </div>
+                    </x-ui.card>
+                    @endif --}}
+
+
                     {{-- Agent Info --}}
                     <x-ui.card>
                         <h3 class="font-semibold mb-4">Assigned Agent</h3>
@@ -174,6 +207,8 @@
                             </div>
                         @endif
                     </x-ui.card>
+
+                    {{-- Activity  --}}
                     <x-ui.card>
                         <h3 class="font-semibold mb-4">Activity</h3>
 
@@ -223,6 +258,58 @@
 
                         </div>
                     </x-ui.card>
+
+                    {{-- Attachments --}}
+                    @if($complaint->attachments->count())
+                    <x-ui.card>
+                        <h3 class="font-semibold mb-4">Attachments</h3>
+
+                        <div class="space-y-3">
+
+                            @foreach($complaint->attachments as $file)
+
+                                @php
+                                    $isImage = str_starts_with($file->mime_type, 'image/');
+                                @endphp
+
+                                <div class="flex items-center justify-between border rounded-lg p-3">
+
+                                    <div class="flex items-center gap-3">
+
+                                        @if($isImage)
+                                            <img src="{{ asset('storage/' . $file->file_path) }}"
+                                                class="w-12 h-12 object-cover rounded-lg">
+                                        @else
+                                            <div class="w-12 h-12 bg-gray-100 flex items-center justify-center rounded-lg">
+                                                📄
+                                            </div>
+                                        @endif
+
+                                        <div>
+                                            <p class="text-sm font-medium">
+                                                {{ $file->file_name }}
+                                            </p>
+                                            <p class="text-xs text-gray-400">
+                                                {{ number_format($file->file_size / 1024, 1) }} KB
+                                            </p>
+                                        </div>
+
+                                    </div>
+
+                                    <a href="{{ asset('storage/' . $file->file_path) }}"
+                                    target="_blank"
+                                    class="text-indigo-600 text-sm hover:underline">
+                                        View
+                                    </a>
+
+                                </div>
+
+                            @endforeach
+
+                        </div>
+                    </x-ui.card>
+                    @endif
+
                 </div>
             </div>
 

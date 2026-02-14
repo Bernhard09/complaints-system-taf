@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /* Controllers */
@@ -13,8 +14,8 @@ use App\Http\Controllers\DashboardController;
 
 /* Models */
 use App\Models\Complaint;
+use App\Models\ComplaintAttachment;
 
-use Illuminate\Support\Facades\Auth;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,14 +73,24 @@ Route::middleware('auth')->group(function () {
         [ComplaintMessageController::class, 'storeAgent']
     )->middleware('role:AGENT')
         ->name('agent.complaints.messages');
-
-
+        
 
     Route::post(
         '/complaints/{complaint}/internal-notes',
         [ComplaintInternalNoteController::class, 'storeAgent']
     )->middleware('role:AGENT,SUPERVISOR')
     ->name('complaints.internal-notes.store');
+
+    Route::get('/attachments/{attachment}/download', function ($attachment) {
+
+        $attachment = ComplaintAttachment::findOrFail($attachment);
+
+        return response()->download(
+            storage_path('app/public/'.$attachment->file_path),
+            $attachment->original_name
+        );
+
+    })->name('attachments.download');
 });
 
 /*

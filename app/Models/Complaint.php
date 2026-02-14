@@ -51,16 +51,26 @@ class Complaint extends Model
         return $this->hasMany(ComplaintInternalNote::class);
     }
 
-    // relation
+    /*RELASION*/
+
+    // user relation
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    // agent relation
     public function agent()
     {
         return $this->belongsTo(User::class, 'agent_id');
     }
+
+    // attachments relation
+    public function attachments()
+    {
+        return $this->hasMany(ComplaintAttachment::class);
+    }
+
 
      // SLA Breach Checkers
     public function isResponseSlaBreached(): bool
