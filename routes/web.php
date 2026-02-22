@@ -38,7 +38,7 @@ Route::get('/dashboard', function () {
 
     return match ($user->role) {
         'USER' => redirect()->route('user.dashboard'),
-        'SUPERVISOR' => redirect()->route('supervisor.dashboard.index'),
+        'SUPERVISOR' => redirect()->route('supervisor.dashboard'),
         'AGENT' => redirect()->route('agent.dashboard'),
         default => view('dashboard'),
     };
@@ -73,7 +73,7 @@ Route::middleware('auth')->group(function () {
         [ComplaintMessageController::class, 'storeAgent']
     )->middleware('role:AGENT')
         ->name('agent.complaints.messages');
-        
+
 
     Route::post(
         '/complaints/{complaint}/internal-notes',
@@ -105,9 +105,9 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
     Route::get('/user/dashboard', [DashboardController::class, 'user'])
         ->name('user.dashboard');
 
-    Route::get('/complaints', function () {
-        return 'USER complaints';
-    });
+    // Route::get('/complaints', function () {
+    //     return 'USER complaints';
+    // });
 
     // IMPORTANT: create BEFORE {complaint}
     Route::get('/complaints/create', [ComplaintController::class, 'create'])
@@ -134,8 +134,12 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
 Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')
     ->group(function () {
 
-        Route::get('/supervisor/dashboard', [DashboardController::class, 'supervisor'])
-            ->name('supervisor.dashboard.index');
+        Route::get('/dashboard', [SupervisorComplaintController::class, 'index'])
+            ->name('supervisor.dashboard');
+
+        Route::get('/complaints/{complaint}', [SupervisorComplaintController::class, 'show']
+        )->name('supervisor.complaints.show');
+
 
         Route::post(
             '/complaints/{complaint}/assign',
@@ -146,6 +150,16 @@ Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')
             '/complaints/{complaint}/assign-agent',
             [SupervisorComplaintController::class, 'assignAgent']
         )->name('supervisor.complaints.assignAgent');
+
+        Route::post(
+            '/complaints/{complaint}/reassign',
+            [SupervisorComplaintController::class, 'reassign']
+        )->name('supervisor.complaints.reassign');
+
+        Route::post(
+            '/complaints/{complaint}/reopen',
+            [SupervisorComplaintController::class, 'reopen']
+        )->name('supervisor.complaints.reopen');
 });
 
 /*

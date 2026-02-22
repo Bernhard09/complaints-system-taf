@@ -25,10 +25,10 @@
         @endif
 
         @if(auth()->user()->role === 'SUPERVISOR')
-            <a href="{{ route('supervisor.complaints.index') }}"
+            {{-- <a href="{{ route('supervisor.complaints') }}"
                 class="block px-3 py-2 rounded-lg hover:bg-gray-100">
                 Incoming
-            </a>
+            </a> --}}
         @endif
     </nav>
 

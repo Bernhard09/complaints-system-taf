@@ -15,6 +15,7 @@ class Complaint extends Model
         'department_id',
         'agent_id',
         'status',
+        'assigned_by',
 
         // SLA
         'assigned_at',
@@ -36,22 +37,41 @@ class Complaint extends Model
         'escalated_at' => 'datetime',
     ];
 
+
+    /*
+        RELATION
+    */
+
+    // department relation
     public function department()
     {
         return $this->belongsTo(Department::class);
     }
 
+    // messages relation
     public function messages()
     {
         return $this->hasMany(ComplaintMessage::class);
     }
 
+    // internal notes relation
     public function internalNotes()
     {
         return $this->hasMany(ComplaintInternalNote::class);
     }
 
-    /*RELASION*/
+    // assignments history
+    public function assignments()
+    {
+        return $this->hasMany(ComplaintAssignment::class);
+    }
+
+    // attachments relation
+    public function attachments()
+    {
+        return $this->hasMany(ComplaintAttachment::class);
+    }
+
 
     // user relation
     public function user()
@@ -64,15 +84,19 @@ class Complaint extends Model
     {
         return $this->belongsTo(User::class, 'agent_id');
     }
-
-    // attachments relation
-    public function attachments()
+    // supervisor relation
+    public function assignedBy()
     {
-        return $this->hasMany(ComplaintAttachment::class);
+        return $this->belongsTo(User::class, 'assigned_by');
+    }
+
+    public function canBeReassigned(): bool
+    {
+        return in_array($this->status, ['ASSIGNED', 'IN_PROGRESS']);
     }
 
 
-     // SLA Breach Checkers
+    // SLA Breach Checkers
     public function isResponseSlaBreached(): bool
     {
         return $this->status === 'ASSIGNED'

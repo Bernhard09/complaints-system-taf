@@ -55,8 +55,30 @@ class DashboardController extends Controller
 
     public function supervisor()
     {
-        $complaints = Complaint::latest()->get();
+        $incoming = Complaint::where('status', 'SUBMITTED')->count();
 
-        return view('supervisor.dashboard.index', compact('complaints'));
+        $assigned = Complaint::where('status', 'ASSIGNED')->count();
+
+        $inProgress = Complaint::where('status', 'IN_PROGRESS')->count();
+
+        $waitingUser = Complaint::where('status', 'WAITING_USER')->count();
+
+        $resolvedToday = Complaint::where('status', 'RESOLVED')
+            ->whereDate('updated_at', today())
+            ->count();
+
+        $overdue = Complaint::whereNotNull('sla_resolution_deadline')
+            ->where('sla_resolution_deadline', '<', now())
+            ->whereNotIn('status', ['RESOLVED'])
+            ->count();
+
+        return view('supervisor.dashboard', compact(
+            'incoming',
+            'assigned',
+            'inProgress',
+            'waitingUser',
+            'resolvedToday',
+            'overdue'
+        ));
     }
 }
