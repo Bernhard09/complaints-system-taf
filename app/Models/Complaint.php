@@ -16,7 +16,7 @@ class Complaint extends Model
         'agent_id',
         'status',
         'assigned_by',
-
+        'resolved_at',
         // SLA
         'assigned_at',
         'first_response_at',
@@ -32,6 +32,7 @@ class Complaint extends Model
         'assigned_at' => 'datetime',
         'first_response_at' => 'datetime',
         'confirmed_at' => 'datetime',
+        'resolved_at' => 'datetime',
         'sla_response_deadline' => 'datetime',
         'sla_resolution_deadline' => 'datetime',
         'escalated_at' => 'datetime',
@@ -84,6 +85,12 @@ class Complaint extends Model
     {
         return $this->belongsTo(User::class, 'agent_id');
     }
+
+    public function scopeForAgent($query, $agentId)
+    {
+        return $query->where('agent_id', $agentId);
+    }
+
     // supervisor relation
     public function assignedBy()
     {
@@ -93,6 +100,27 @@ class Complaint extends Model
     public function canBeReassigned(): bool
     {
         return in_array($this->status, ['ASSIGNED', 'IN_PROGRESS']);
+    }
+
+    public function getSlaStatusAttribute()
+    {
+        if (!$this->sla_resolution_deadline) {
+            return null;
+        }
+
+        if (now()->greaterThan($this->sla_resolution_deadline)) {
+            return 'BREACHED';
+        }
+
+        if (now()->diffInHours($this->sla_resolution_deadline) <= 4) {
+            return 'CRITICAL';
+        }
+
+        if (now()->diffInHours($this->sla_resolution_deadline) <= 12) {
+            return 'WARNING';
+        }
+
+        return 'SAFE';
     }
 
 

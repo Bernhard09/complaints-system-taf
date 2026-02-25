@@ -72,7 +72,7 @@ Route::middleware('auth')->group(function () {
         '/agent/complaints/{complaint}/messages',
         [ComplaintMessageController::class, 'storeAgent']
     )->middleware('role:AGENT')
-        ->name('agent.complaints.messages');
+        ->name('complaints.messages.agent');
 
 
     Route::post(
@@ -136,6 +136,8 @@ Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')
 
         Route::get('/dashboard', [SupervisorComplaintController::class, 'index'])
             ->name('supervisor.dashboard');
+        Route::get('/dashboardtemp', [SupervisorComplaintController::class, 'index'])
+            ->name('supervisor.dashboard.temp');
 
         Route::get('/complaints/{complaint}', [SupervisorComplaintController::class, 'show']
         )->name('supervisor.complaints.show');
@@ -171,12 +173,24 @@ Route::middleware(['auth', 'role:AGENT'])->prefix('agent')
     ->group(function () {
 
 
-    Route::get('/dashboard', [DashboardController::class, 'agent'])
+    Route::get('/dashboard', [AgentComplaintController::class, 'index'])
         ->name('agent.dashboard');
 
+        // Route::get('/agent/dashboard', [AgentComplaintController::class,'index'])
+        // ->name('agent.dashboard');
 
-    Route::get('/complaints', [AgentComplaintController::class, 'index'])
-        ->name('agent.complaints.index');
+    Route::get('/assigned', [AgentComplaintController::class,'assigned'])
+        ->name('agent.assigned');
+
+    Route::get('/history', [AgentComplaintController::class,'history'])
+        ->name('agent.history');
+
+    Route::get('/sla', [AgentComplaintController::class,'sla'])
+        ->name('agent.sla');
+
+
+    // Route::get('/complaints', [AgentComplaintController::class, 'index'])
+    //     ->name('agent.complaints.index');
 
     Route::post('/complaints/{complaint}/waiting', [AgentComplaintController::class, 'markWaiting'])
         ->name('agent.complaints.waiting');

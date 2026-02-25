@@ -146,8 +146,8 @@ class ComplaintController extends Controller
         );
 
         $complaint->update([
-            'status' => 'CLOSED',
-            'confirmed_at' => now(),
+            'status' => 'RESOLVED',
+            'resolved_at' => now(),
         ]);
 
         return back()->with('success', 'Complaint has been closed. Thank you.');

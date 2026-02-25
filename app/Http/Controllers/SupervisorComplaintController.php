@@ -17,12 +17,20 @@ class SupervisorComplaintController extends Controller
     public function index(Request $request)
     {
 
-    $columns = [
+        $columns = [
             'SUBMITTED' => 'Incoming',
             'ASSIGNED' => 'Assigned',
             'IN_PROGRESS' => 'In Progress',
             'WAITING_USER' => 'Waiting User',
             'RESOLVED' => 'Resolved',
+        ];
+
+        $metrics = [
+            'incoming' => Complaint::whereNull('agent_id')->count(),
+            'assigned' => Complaint::where('status', 'ASSIGNED')->count(),
+            'in_progress' => Complaint::where('status', 'IN_PROGRESS')->count(),
+            'breached' => Complaint::resolutionSlaBreached()->count(),
+            'resolved_today' => Complaint::whereDate('resolved_at', now())->count(),
         ];
 
         $board = [];
@@ -35,7 +43,7 @@ class SupervisorComplaintController extends Controller
                 ->get();
         }
 
-        return view('supervisor.dashboard', compact('board', 'columns'));
+        return view('supervisor.dashboard', compact('board', 'columns', 'metrics'));
 
 
         // $complaints = Complaint::whereIn('status', ['SUBMITTED', 'IN_REVIEW', 'ASSIGNED'])

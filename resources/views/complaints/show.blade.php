@@ -57,7 +57,7 @@
                     @if($complaint->status !== 'SUBMITTED'
                         && in_array($user->role, ['USER','AGENT']))
                         <form method="POST"
-                                action="{{ route('complaints.messages.user', $complaint) }}"
+                                action="{{ route('complaints.messages.'.strtolower($user->role), $complaint) }}"
                                 class="mt-4 flex gap-3">
                             @csrf
                             <input name="message"
