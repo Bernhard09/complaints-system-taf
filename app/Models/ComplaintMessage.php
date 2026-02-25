@@ -11,6 +11,13 @@ class ComplaintMessage extends Model
         'sender_id',
         'sender_role',
         'message',
+        'attachment_path',
+        'attachment_name',
+        'is_system',
+    ];
+
+    protected $casts = [
+        'is_system' => 'boolean',
     ];
 
     public function complaint()

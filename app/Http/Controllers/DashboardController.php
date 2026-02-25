@@ -29,7 +29,7 @@ class DashboardController extends Controller
 
         $recent = (clone $complaints)
             ->latest()
-            ->take(3)
+            ->take(4)
             ->get();
 
         return view('user.dashboard', compact(
@@ -40,6 +40,40 @@ class DashboardController extends Controller
             'recent',
             'complaints'
         ));
+    }
+
+    public function complaints(Request $request)
+    {
+        $user = $request->user();
+
+        $query = Complaint::where('user_id', $user->id)->latest();
+
+        // Search
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('contract_number', 'ilike', "%{$search}%")
+                  ->orWhere('complaint_reason', 'ilike', "%{$search}%")
+                  ->orWhere('description', 'ilike', "%{$search}%");
+            });
+        }
+
+        // Status filter
+        if ($request->status && $request->status !== 'ALL') {
+            $query->where('status', $request->status);
+        }
+
+        // Date range
+        if ($request->from) {
+            $query->whereDate('created_at', '>=', $request->from);
+        }
+        if ($request->to) {
+            $query->whereDate('created_at', '<=', $request->to);
+        }
+
+        $complaints = $query->paginate(12)->withQueryString();
+
+        return view('user.complaints', compact('complaints'));
     }
 
     public function agent(Request $request)

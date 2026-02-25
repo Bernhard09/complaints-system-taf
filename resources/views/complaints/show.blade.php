@@ -1,13 +1,22 @@
 @php
     $user = auth()->user();
     $status = $complaint->status;
+    $isResolved = in_array($status, ['RESOLVED', 'CLOSED', 'CANCELLED']);
+    $canChat = in_array($user->role, ['USER','AGENT'])
+        && !in_array($status, ['SUBMITTED','RESOLVED','CLOSED','CANCELLED','PENDING_REASSIGN']);
 @endphp
 
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-semibold">
-            Complaint #{{ $complaint->id }}
-        </h2>
+        <div class="flex items-center gap-3">
+            <a href="javascript:history.back()"
+               class="text-gray-400 hover:text-gray-700 transition">
+                <x-heroicon-o-arrow-left class="w-5 h-5" />
+            </a>
+            <h2 class="text-xl font-semibold">
+                Complaint #{{ $complaint->id }}
+            </h2>
+        </div>
     </x-slot>
 
     <div class="mx-auto w-full max-w-screen-2xl px-10 py-8">
@@ -34,39 +43,158 @@
                         @else
 
                             @foreach($complaint->messages as $msg)
-                                <div class="flex {{ $msg->sender_id === auth()->id() ? 'justify-end' : 'justify-start' }}">
-
-                                    <div class="max-w-[70%] px-4 py-3 rounded-2xl
-                                        {{ $msg->sender_id === auth()->id()
-                                            ? 'bg-indigo-600 text-white'
-                                            : 'bg-gray-100 text-gray-800' }}">
-
-                                        <p class="text-sm">{{ $msg->message }}</p>
-
-                                        <p class="text-[10px] mt-2 opacity-70">
-                                            {{ $msg->created_at->diffForHumans() }}
-                                        </p>
+                                @if($msg->is_system)
+                                    {{-- System message --}}
+                                    <div class="flex justify-center">
+                                        <div class="bg-gray-200 text-gray-600 px-4 py-2 rounded-full text-xs max-w-[80%] text-center">
+                                            {{ $msg->message }}
+                                        </div>
                                     </div>
-                                </div>
+                                @else
+                                    @php
+                                        $isMine = $msg->sender_id === auth()->id();
+                                        $isUserMsg = $msg->sender_role === 'USER';
+                                        // User = indigo, Agent = blue
+                                        $bubbleColor = $isUserMsg
+                                            ? ($isMine ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-900')
+                                            : ($isMine ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-900');
+                                    @endphp
+                                    <div class="flex {{ $isMine ? 'justify-end' : 'justify-start' }}">
+
+                                        <div class="max-w-[70%] px-4 py-3 rounded-2xl {{ $bubbleColor }}">
+
+                                            {{-- Sender name --}}
+                                            <p class="text-[10px] font-semibold mb-1 opacity-80">
+                                                {{ $msg->sender->name ?? 'Unknown' }}
+                                                @if($msg->sender_role === 'AGENT')
+                                                    <span class="opacity-60">· Agent</span>
+                                                @endif
+                                            </p>
+
+                                            @if($msg->message)
+                                                <p class="text-sm whitespace-pre-wrap break-words">{{ $msg->message }}</p>
+                                            @endif
+
+                                            {{-- Attachment --}}
+                                            @if($msg->attachment_path)
+                                                @php
+                                                    $ext = pathinfo($msg->attachment_name, PATHINFO_EXTENSION);
+                                                    $isImage = in_array(strtolower($ext), ['jpg','jpeg','png','webp']);
+                                                @endphp
+                                                <div class="mt-2">
+                                                    @if($isImage)
+                                                        <a href="{{ asset('storage/' . $msg->attachment_path) }}"
+                                                           target="_blank">
+                                                            <img src="{{ asset('storage/' . $msg->attachment_path) }}"
+                                                                 alt="{{ $msg->attachment_name }}"
+                                                                 class="rounded-lg max-h-48 cursor-pointer hover:opacity-90 transition" />
+                                                        </a>
+                                                    @else
+                                                        <a href="{{ asset('storage/' . $msg->attachment_path) }}"
+                                                           target="_blank"
+                                                           class="inline-flex items-center gap-1 text-xs underline opacity-80 hover:opacity-100">
+                                                            📎 {{ $msg->attachment_name }}
+                                                        </a>
+                                                    @endif
+                                                </div>
+                                            @endif
+
+                                            <p class="text-[10px] mt-2 opacity-70">
+                                                {{ $msg->created_at->diffForHumans() }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endif
                             @endforeach
 
                         @endif
                     </div>
 
-                    {{-- Chat Input --}}
-                    @if($complaint->status !== 'SUBMITTED'
-                        && in_array($user->role, ['USER','AGENT']))
+                    {{-- Pending Reassign Confirm/Reject (for old agent) --}}
+                    @if($complaint->status === 'PENDING_REASSIGN' && $user->role === 'AGENT' && $complaint->agent_id === $user->id)
+                        @php $pendingAssign = $complaint->pendingReassignment(); @endphp
+                        @if($pendingAssign)
+                            <div x-data="{ showReject: false }" class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                <p class="text-sm font-semibold text-amber-700">⏳ Reassign Request</p>
+                                <p class="text-xs text-amber-600 mt-1">
+                                    Supervisor wants to reassign this complaint to another agent.
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">Reason: {{ $pendingAssign->reason }}</p>
+
+                                <div class="flex gap-2 mt-3">
+                                    <form method="POST" action="{{ route('agent.reassign.confirm', $pendingAssign) }}">
+                                        @csrf
+                                        <button class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+                                            ✓ Confirm
+                                        </button>
+                                    </form>
+
+                                    <button @click="showReject = !showReject"
+                                            class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+                                        ✕ Reject
+                                    </button>
+                                </div>
+
+                                <div x-show="showReject" x-transition class="mt-3">
+                                    <form method="POST" action="{{ route('agent.reassign.reject', $pendingAssign) }}">
+                                        @csrf
+                                        <textarea name="rejection_reason" rows="2" required
+                                                  placeholder="Why are you rejecting this reassign?"
+                                                  class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
+                                        <button class="mt-2 bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+                                            Submit Rejection
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endif
+                    @elseif($complaint->status === 'PENDING_REASSIGN')
+                        <div class="mt-4 text-sm text-amber-600 italic">
+                            ⏳ Reassign pending — waiting for agent confirmation
+                        </div>
+                    @elseif($isResolved)
+                        <div class="mt-4 text-sm text-gray-400 italic text-center py-2 border-t">
+                            This complaint has been resolved. Chat is closed.
+                        </div>
+                    @elseif($canChat)
                         <form method="POST"
-                                action="{{ route('complaints.messages.'.strtolower($user->role), $complaint) }}"
-                                class="mt-4 flex gap-3">
+                              action="{{ route('complaints.messages.'.strtolower($user->role), $complaint) }}"
+                              enctype="multipart/form-data"
+                              class="mt-4"
+                              x-data="{ fileName: '' }">
                             @csrf
-                            <input name="message"
-                                    class="flex-1 border rounded-xl px-4 py-2"
-                                    placeholder="Type your message..."
-                                    required />
-                            <x-ui.button>Send</x-ui.button>
+
+                            {{-- Attachment preview --}}
+                            <div x-show="fileName" x-transition
+                                 class="mb-2 flex items-center gap-2 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
+                                <span>📎</span>
+                                <span x-text="fileName" class="truncate"></span>
+                                <button type="button"
+                                        @click="fileName = ''; $refs.fileInput.value = ''"
+                                        class="ml-auto text-red-400 hover:text-red-600">✕</button>
+                            </div>
+
+                            <div class="flex gap-3 items-center">
+                                {{-- Attachment button --}}
+                                <label class="cursor-pointer text-gray-400 hover:text-indigo-600 transition">
+                                    <x-heroicon-o-paper-clip class="w-5 h-5" />
+                                    <input type="file"
+                                           name="attachment"
+                                           x-ref="fileInput"
+                                           @change="fileName = $event.target.files[0]?.name || ''"
+                                           accept="image/*,.pdf"
+                                           class="hidden" />
+                                </label>
+
+                                <input name="message"
+                                       class="flex-1 border rounded-xl px-4 py-2"
+                                       placeholder="Type your message..."
+                                />
+
+                                <x-ui.button>Send</x-ui.button>
+                            </div>
                         </form>
-                    @else
+                    @elseif($user->role === 'SUPERVISOR')
                         <div class="mt-4 text-sm text-gray-500 italic">
                             Supervisor view (read-only)
                         </div>
@@ -84,27 +212,66 @@
                 <div class="sticky top-6 space-y-6">
 
                     {{-- SLA --}}
-                    @if($complaint->sla_resolution_deadline)
-                        @php
-                            $deadline = $complaint->sla_resolution_deadline;
-                            $isBreached = now()->greaterThan($deadline);
-                        @endphp
-
+                    @if($complaint->sla_response_deadline || $complaint->sla_resolution_deadline)
                         <x-ui.card class="p-6">
                             <h3 class="font-semibold mb-4">SLA</h3>
 
-                            <p class="text-sm">Resolution Deadline</p>
+                            <div class="space-y-4 text-sm">
 
-                            <p class="mt-1 font-semibold
-                                {{ $isBreached ? 'text-red-600' : 'text-gray-700' }}">
-                                {{ $deadline->format('d M Y H:i') }}
-                            </p>
+                                {{-- Response SLA --}}
+                                @if($complaint->sla_response_deadline)
+                                    <div>
+                                        <p class="text-gray-400 text-xs uppercase mb-1">Response SLA</p>
+                                        @if($complaint->first_response_at)
+                                            <p class="text-green-600 font-medium">
+                                                ✓ Responded {{ $complaint->first_response_at->format('d M Y H:i') }}
+                                            </p>
+                                            <p class="text-xs text-gray-400">
+                                                {{ $complaint->first_response_at->diffForHumans($complaint->assigned_at) }} after assignment
+                                            </p>
+                                        @else
+                                            @php $respBreached = now()->greaterThan($complaint->sla_response_deadline); @endphp
+                                            <p class="font-semibold {{ $respBreached ? 'text-red-600' : 'text-gray-700' }}">
+                                                {{ $complaint->sla_response_deadline->format('d M Y H:i') }}
+                                            </p>
+                                            <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                                {{ $respBreached ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600' }}">
+                                                {{ $respBreached ? 'BREACHED' : $complaint->sla_response_deadline->diffForHumans() }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endif
 
-                            <p class="text-xs mt-2
-                                {{ $isBreached ? 'text-red-500' : 'text-gray-500' }}">
-                                {{ $isBreached ? 'SLA Breached'
-                                                : $deadline->diffForHumans() }}
-                            </p>
+                                {{-- Resolution SLA --}}
+                                @if($complaint->sla_resolution_deadline)
+                                    <div>
+                                        <p class="text-gray-400 text-xs uppercase mb-1">Resolution SLA</p>
+                                        @php
+                                            $resDeadline = $complaint->sla_resolution_deadline;
+                                            $slaStatus = $complaint->sla_status;
+                                            $slaColor = match($slaStatus) {
+                                                'BREACHED' => 'text-red-600',
+                                                'CRITICAL' => 'text-orange-600',
+                                                'WARNING'  => 'text-yellow-600',
+                                                default    => 'text-gray-700',
+                                            };
+                                            $badgeClass = match($slaStatus) {
+                                                'BREACHED' => 'bg-red-100 text-red-600',
+                                                'CRITICAL' => 'bg-orange-100 text-orange-600',
+                                                'WARNING'  => 'bg-yellow-100 text-yellow-600',
+                                                default    => 'bg-green-100 text-green-600',
+                                            };
+                                        @endphp
+                                        <p class="font-semibold {{ $slaColor }}">
+                                            {{ $resDeadline->format('d M Y H:i') }}
+                                        </p>
+                                        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium {{ $badgeClass }}">
+                                            {{ $slaStatus }}
+                                        </span>
+                                    </div>
+                                @endif
+
+                            </div>
                         </x-ui.card>
                     @endif
 
@@ -136,8 +303,37 @@
 
                             <div>
                                 <p class="text-gray-400 text-xs uppercase">Description</p>
-                                <p class="text-gray-600">{{ $complaint->description }}</p>
+                                <p class="text-gray-600 break-words whitespace-pre-wrap">{{ $complaint->description }}</p>
                             </div>
+
+                            {{-- Complaint Attachments (from submission) --}}
+                            @if($complaint->attachments && $complaint->attachments->count())
+                                <div>
+                                    <p class="text-gray-400 text-xs uppercase mb-2">Attachments</p>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        @foreach($complaint->attachments as $attachment)
+                                            @php
+                                                $ext = pathinfo($attachment->file_name, PATHINFO_EXTENSION);
+                                                $isImage = in_array(strtolower($ext), ['jpg','jpeg','png','webp']);
+                                            @endphp
+                                            @if($isImage)
+                                                <a href="{{ asset('storage/' . $attachment->file_path) }}"
+                                                   target="_blank">
+                                                    <img src="{{ asset('storage/' . $attachment->file_path) }}"
+                                                         alt="{{ $attachment->file_name }}"
+                                                         class="rounded-lg h-24 w-full object-cover border hover:opacity-90 transition" />
+                                                </a>
+                                            @else
+                                                <a href="{{ asset('storage/' . $attachment->file_path) }}"
+                                                   target="_blank"
+                                                   class="flex items-center gap-1 text-xs text-indigo-600 hover:underline border rounded-lg p-2">
+                                                    📎 {{ $attachment->file_name }}
+                                                </a>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
 
                         </div>
                     </x-ui.card>
@@ -191,56 +387,91 @@
                                 </div>
                             @endif
 
+                            @foreach($complaint->assignments()->with(['fromAgent', 'toAgent'])->latest()->get() as $assign)
+                                <div>
+                                    @if($assign->status === 'CONFIRMED')
+                                        <span class="text-green-600">✓</span>
+                                        Reassigned from {{ $assign->fromAgent?->name }} → {{ $assign->toAgent?->name }}
+                                    @elseif($assign->status === 'REJECTED')
+                                        <span class="text-red-600">✕</span>
+                                        Reassign rejected by {{ $assign->fromAgent?->name }}
+                                    @else
+                                        <span class="text-amber-600">⏳</span>
+                                        Reassign pending ({{ $assign->fromAgent?->name }} → {{ $assign->toAgent?->name }})
+                                    @endif
+                                    <p class="text-xs text-gray-400">
+                                        {{ $assign->created_at->diffForHumans() }}
+                                    </p>
+                                </div>
+                            @endforeach
+
+                            @if($complaint->first_response_at)
+                                <div>
+                                    Agent first response
+                                    <p class="text-xs text-gray-400">
+                                        {{ $complaint->first_response_at->diffForHumans() }}
+                                    </p>
+                                </div>
+                            @endif
+
+                            @if($complaint->resolved_at)
+                                <div>
+                                    <span class="text-green-600">✓</span> Resolved
+                                    <p class="text-xs text-gray-400">
+                                        {{ $complaint->resolved_at->diffForHumans() }}
+                                    </p>
+                                </div>
+                            @endif
+
                         </div>
                     </x-ui.card>
 
                     {{-- Actions --}}
-                    <x-ui.card class="p-6">
-                        <h3 class="font-semibold mb-4">Actions</h3>
+                    @if(!$isResolved)
+                        <x-ui.card class="p-6">
+                            <h3 class="font-semibold mb-4">Actions</h3>
 
-                        <div class="space-y-3">
+                            <div class="space-y-3">
 
-                            @if($user->role === 'USER'
-                                && $status === 'WAITING_CONFIRMATION')
+                                {{-- USER: Confirm/Reject resolution --}}
+                                @if($user->role === 'USER' && $status === 'WAITING_CONFIRMATION')
+                                    <form method="POST"
+                                            action="{{ route('complaints.confirm', $complaint) }}">
+                                        @csrf
+                                        <button class="w-full bg-green-600 text-white py-2 rounded-lg">
+                                            ✓ Confirm Resolved
+                                        </button>
+                                    </form>
+                                @endif
 
-                                <form method="POST"
-                                        action="{{ route('complaints.confirm', $complaint) }}">
-                                    @csrf
-                                    <button class="w-full bg-green-600 text-white py-2 rounded-lg">
-                                        Confirm Resolved
-                                    </button>
-                                </form>
-                            @endif
+                                {{-- AGENT actions --}}
+                                @if($user->role === 'AGENT' && !in_array($status, ['PENDING_REASSIGN', 'WAITING_CONFIRMATION']))
 
-                            @if($user->role === 'AGENT')
+                                    @if(in_array($status, ['ASSIGNED', 'IN_PROGRESS']))
+                                        <form method="POST"
+                                                action="{{ route('agent.complaints.waiting', $complaint) }}">
+                                            @csrf
+                                            <button class="w-full bg-yellow-500 text-white py-2 rounded-lg">
+                                                ⏸ Mark Waiting User
+                                            </button>
+                                        </form>
+                                    @endif
 
-                                <form method="POST"
-                                        action="{{ route('agent.complaints.waiting', $complaint) }}">
-                                    @csrf
-                                    <button class="w-full bg-yellow-500 text-white py-2 rounded-lg">
-                                        Waiting User
-                                    </button>
-                                </form>
+                                    @if(in_array($status, ['IN_PROGRESS', 'WAITING_USER']))
+                                        <form method="POST"
+                                                action="{{ route('agent.complaints.requestConfirmation', $complaint) }}">
+                                            @csrf
+                                            <button class="w-full bg-blue-600 text-white py-2 rounded-lg">
+                                                ✓ Request Resolved
+                                            </button>
+                                        </form>
+                                    @endif
 
-                                <form method="POST"
-                                        action="{{ route('agent.complaints.requestConfirmation', $complaint) }}">
-                                    @csrf
-                                    <button class="w-full bg-blue-600 text-white py-2 rounded-lg">
-                                        Request Confirmation
-                                    </button>
-                                </form>
+                                @endif
 
-                                <form method="POST"
-                                        action="{{ route('agent.complaints.close', $complaint) }}">
-                                    @csrf
-                                    <button class="w-full bg-green-600 text-white py-2 rounded-lg">
-                                        Close Complaint
-                                    </button>
-                                </form>
-                            @endif
-
-                        </div>
-                    </x-ui.card>
+                            </div>
+                        </x-ui.card>
+                    @endif
 
                     {{-- Internal Notes --}}
                     @if(in_array($user->role, ['AGENT','SUPERVISOR']))
@@ -251,7 +482,7 @@
 
                                 @foreach($complaint->internalNotes as $note)
                                     <div class="border-b pb-2">
-                                        <p>{{ $note->note }}</p>
+                                        <p class="break-words whitespace-pre-wrap">{{ $note->note }}</p>
                                         <p class="text-xs text-gray-400">
                                             {{ $note->author->name }}
                                             • {{ $note->created_at->diffForHumans() }}
@@ -261,18 +492,20 @@
 
                             </div>
 
-                            <form method="POST"
-                                    action="{{ route('complaints.internal-notes.store', $complaint) }}"
-                                    class="mt-4 flex gap-2">
-                                @csrf
-                                <input name="note"
-                                        class="flex-1 border rounded-lg px-3 py-2"
-                                        placeholder="Add internal note..."
-                                        required>
-                                <button class="bg-yellow-600 text-white px-4 rounded-lg">
-                                    Add
-                                </button>
-                            </form>
+                            @if(!$isResolved)
+                                <form method="POST"
+                                        action="{{ route('complaints.internal-notes.store', $complaint) }}"
+                                        class="mt-4 flex gap-2">
+                                    @csrf
+                                    <input name="note"
+                                            class="flex-1 border rounded-lg px-3 py-2"
+                                            placeholder="Add internal note..."
+                                            required>
+                                    <button class="bg-yellow-600 text-white px-4 rounded-lg">
+                                        Add
+                                    </button>
+                                </form>
+                            @endif
                         </x-ui.card>
                     @endif
 
@@ -289,4 +522,9 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
     });
+
+    // Auto refresh every 15 seconds
+    setInterval(function () {
+        window.location.reload();
+    }, 15000);
 </script>

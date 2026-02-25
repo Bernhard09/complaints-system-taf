@@ -1,96 +1,360 @@
 <x-app-layout>
     <x-slot name="header">
-        Supervisor Dashboard
+        <h2 class="text-lg font-semibold text-gray-800">
+            Agent Workspace
+        </h2>
     </x-slot>
 
-    <div class="w-full px-10 py-8 bg-gradient-to-b from-gray-50 to-white">
+    <div class="bg-gray-100 min-h-screen py-10">
+        <div class="max-w-screen-2xl mx-auto px-10 space-y-8">
 
+    {{-- ================= METRICS ================= --}}
+    <div class="flex flex-wrap gap-4">
 
-        <div class="flex gap-6 overflow-x-auto pb-4">
-            @foreach($columns as $status => $label)
+        <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 flex-1 min-w-[160px]">
+            <p class="text-xs text-gray-500">UNASSIGNED</p>
+            <p class="text-2xl font-semibold text-orange-500">
+                {{ $metrics['incoming'] ?? 0 }}
+            </p>
+        </div>
 
+        <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-indigo-500 flex-1 min-w-[160px]">
+            <p class="text-xs text-gray-500">ASSIGNED</p>
+            <p class="text-2xl font-semibold text-indigo-500">
+                {{ $metrics['assigned'] ?? 0 }}
+            </p>
+        </div>
 
-            <div class="bg-white  rounded-2xl p-4 border border-gray-200 ">
+        <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-blue-500 flex-1 min-w-[160px]">
+            <p class="text-xs text-gray-500">IN PROGRESS</p>
+            <p class="text-2xl font-semibold text-blue-500">
+                {{ $metrics['in_progress'] ?? 0 }}
+            </p>
+        </div>
 
-                {{-- Column Header --}}
-                <div class="flex items-center justify-between
-                            border-b border-gray-100 pb-3 mb-4">
-                    <h3 class="text-sm font-semibold text-gray-900 tracking-tight">
-                        {{ $label }}
-                    </h3>
+        <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-500 flex-1 min-w-[160px]">
+            <p class="text-xs text-gray-500">BREACHED SLA</p>
+            <p class="text-2xl font-semibold text-red-500">
+                {{ $metrics['breached'] ?? 0 }}
+            </p>
+        </div>
 
-                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-medium">
-                        {{ $board[$status]->count() }}
-                    </span>
+        <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-green-500 flex-1 min-w-[160px]">
+            <p class="text-xs text-gray-500">RESOLVED TODAY</p>
+            <p class="text-2xl font-semibold text-green-500">
+                {{ $metrics['resolved_today'] ?? 0 }}
+            </p>
+        </div>
+
+    </div>
+
+    {{-- ================= SLA BLOCK ================= --}}
+    <div class="bg-white rounded-xl shadow-sm p-4">
+        <h3 class="font-semibold mb-2">SLA Monitoring</h3>
+        @if(($metrics['breached'] ?? 0) == 0)
+            <p class="text-gray-500 text-sm">No SLA issues detected.</p>
+        @else
+            <p class="text-red-500 text-sm">
+                {{ $metrics['breached'] }} complaints breached SLA.
+            </p>
+        @endif
+    </div>
+
+    {{-- ================= MAIN WORKSPACE ================= --}}
+    @php
+        $supervisorStatuses = ['SUBMITTED', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_USER', 'WAITING_CONFIRMATION', 'RESOLVED'];
+    @endphp
+
+    <div class="bg-white rounded-2xl shadow-sm border border-indigo-100 overflow-hidden">
+
+        <div class="h-1 bg-indigo-500"></div>
+
+        <div class="p-6 space-y-6">
+
+            {{-- ================= TOGGLE ROW ================= --}}
+            <div class="flex justify-between items-center">
+
+                <div class="flex gap-3">
+
+                    <a href="{{ request()->fullUrlWithQuery(['view'=>'kanban']) }}"
+                        class="px-4 py-2 rounded-lg text-sm
+                        {{ request('view','kanban')==='kanban'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+                            Kanban
+                    </a>
+
+                    <a href="{{ request()->fullUrlWithQuery(['view'=>'table']) }}"
+                        class="px-4 py-2 rounded-lg text-sm
+                        {{ request('view')==='table'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+                            Table
+                    </a>
+
                 </div>
 
-                {{-- Cards --}}
-
-                <div class="h-1 rounded-t-2xl
-                    @if($status === 'SUBMITTED') bg-amber-500
-                    @elseif($status === 'ASSIGNED') bg-indigo-500
-                    @elseif($status === 'IN_PROGRESS') bg-blue-500
-                    @elseif($status === 'WAITING_USER') bg-yellow-500
-                    @elseif($status === 'RESOLVED') bg-emerald-500
-                    @endif">
-                </div>
-
-
-                <div class=" min-w-[320px] rounded-2xl p-4 flex flex-col space-y-3 max-h-[70vh] overflow-y-auto pr-2" >
-                        @forelse($board[$status] as $complaint)
-
-                        <x-ui.card class="p-4 bg-gray-50/60 hover:bg-white hover:shadow-lg transition-all duration-200
-                                        cursor-pointer
-                                        border border-gray-100
-                                        hover:border-indigo-200">
-                            <div class="flex justify-between items-start">
-                                <span class="text-xs text-gray-400 font-medium">
-                                    #{{ $complaint->id }}
-                                </span>
-
-                                @if($complaint->agent)
-                                    <span class="text-indigo-500 text-xs font-medium">
-                                        {{ $complaint->agent->name }}
-                                    </span>
-                                @else
-                                    <span class="text-xs font-medium text-orange-500">
-                                        Unassigned
-                                    </span>
-                                @endif
-                            </div>
-
-                            <div class="mt-2 text-sm font-semibold text-gray-900">
-                                {{ $complaint->complaint_reason }}
-                            </div>
-
-                            <div class="mt-1 text-xs text-gray-500">
-                                {{ $complaint->user->name }}
-                            </div>
-
-                            <div class="mt-3 flex items-center justify-between text-xs text-gray-400">
-                                <span>{{ $complaint->created_at->diffForHumans() }}</span>
-                                <a href="{{ route('supervisor.complaints.show', $complaint) }}"
-                                    class="text-indigo-500 hover:underline">
-                                    View Details
-                                </a>
-
-                            </div>
-
-                        </x-ui.card>
-
-                        @empty
-                        <div class="text-xs text-gray-400">
-                            No complaints
-                        </div>
-                        @endforelse
-
-
-                </div>
             </div>
-            @endforeach
 
+            {{-- ================= FILTER PANEL (auto-visible in table mode) ================= --}}
+            @if(request('view') === 'table')
+                <div class="bg-gray-50 border rounded-xl p-4">
+
+                    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                        {{-- Keep existing query --}}
+                        @foreach(request()->except(['from','to','search']) as $key=>$value)
+                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                        @endforeach
+
+                        {{-- FROM DATE --}}
+                        <div>
+                            <label class="text-xs text-gray-500">From</label>
+                            <input type="date"
+                                name="from"
+                                value="{{ request('from') }}"
+                                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm
+                                        focus:ring-2 focus:ring-indigo-500">
+                        </div>
+
+                        {{-- TO DATE --}}
+                        <div>
+                            <label class="text-xs text-gray-500">To</label>
+                            <input type="date"
+                                name="to"
+                                value="{{ request('to') }}"
+                                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm
+                                        focus:ring-2 focus:ring-indigo-500">
+                        </div>
+
+                        {{-- SEARCH --}}
+                        <div>
+                            <label class="text-xs text-gray-500">Search</label>
+                            <input type="text"
+                                name="search"
+                                value="{{ request('search') }}"
+                                placeholder="Contract, reason, or user..."
+                                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm
+                                        focus:ring-2 focus:ring-indigo-500">
+                        </div>
+
+                        {{-- BUTTONS --}}
+                        <div class="flex items-end gap-2">
+
+                            <button type="submit"
+                                    class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm">
+                                Apply
+                            </button>
+
+                            <a href="{{ url()->current() }}?view=table"
+                            class="px-4 py-2 rounded-lg bg-gray-200 text-sm">
+                                Reset
+                            </a>
+
+                        </div>
+
+                    </form>
+                </div>
+            @endif
+
+
+            {{-- ================= KANBAN MODE ================= --}}
+            @if(request('view','kanban')==='kanban')
+
+                <div class="flex gap-6 overflow-x-auto">
+
+                    @foreach($columns as $status=>$label)
+
+                        <div class="min-w-[20rem] flex-shrink-0 bg-gray-50 rounded-xl p-4 border">
+
+                            <div class="flex justify-between mb-4">
+                                <h3 class="text-sm font-semibold text-gray-700">
+                                    {{ $label }}
+                                </h3>
+                                <span class="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                                    {{ $board[$status]->count() ?? 0 }}
+                                </span>
+                            </div>
+
+                            <div class="space-y-4">
+
+                                @forelse($board[$status] ?? [] as $complaint)
+
+                                    <div class="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition">
+
+                                        <div class="text-xs text-gray-400 flex justify-between">
+                                            <span class="text-sm">
+                                                {{ $complaint->contract_number }}
+                                            </span>
+
+                                            <span class="text-xs">
+                                                #{{ $complaint->id }}
+                                            </span>
+                                        </div>
+
+                                        <p class="mt-2 font-medium text-sm">
+                                            {{ $complaint->complaint_reason }}
+                                        </p>
+
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            {{ $complaint->user->name }}
+                                        </p>
+
+                                        <div class="flex justify-between items-center mt-3 text-xs">
+                                            <span class="text-gray-400">
+                                                {{ $complaint->created_at->diffForHumans() }}
+                                            </span>
+
+                                            <a href="{{ route('supervisor.complaints.show', $complaint) }}"
+                                                class="text-indigo-600">
+                                                View →
+                                            </a>
+                                        </div>
+
+                                    </div>
+
+                                @empty
+                                    <p class="text-xs text-gray-400">No complaints</p>
+                                @endforelse
+
+                            </div>
+
+                        </div>
+
+                    @endforeach
+
+                </div>
+
+            @endif
+
+
+
+            {{-- ================= TABLE MODE ================= --}}
+            @if(request('view')==='table')
+
+                @php
+                    $allStatuses = ['ALL','SUBMITTED','ASSIGNED','IN_PROGRESS','WAITING_USER','WAITING_CONFIRMATION','RESOLVED'];
+                    $current = request('status','ALL');
+                @endphp
+
+                {{-- STATUS TABS --}}
+                <div class="flex gap-6 text-sm border-b pb-3">
+                    @foreach($allStatuses as $status)
+                        <a href="{{ request()->fullUrlWithQuery([
+                                'status'=>$status==='ALL'?null:$status,
+                                'view'=>'table'
+                            ]) }}"
+                           class="pb-1 transition
+                           {{ $current === $status
+                                ? 'border-b-2 border-indigo-600 text-indigo-600'
+                                : 'text-gray-500 hover:text-gray-700' }}">
+                            {{ str_replace('_', ' ', $status) }}
+                        </a>
+                    @endforeach
+                </div>
+
+
+                {{-- SHOW ENTRIES --}}
+                <div class="flex justify-end text-sm">
+                    <form method="GET" class="flex items-center gap-2">
+
+                        <span class="text-gray-500">Show</span>
+
+                        <select name="per_page"
+                                onchange="this.form.submit()"
+                                class="border border-gray-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500">
+
+                            @foreach([10,25,50,100] as $size)
+                                <option value="{{ $size }}"
+                                    {{ request('per_page',50)==$size ? 'selected' : '' }}>
+                                    {{ $size }}
+                                </option>
+                            @endforeach
+
+                        </select>
+
+                        <span class="text-gray-500">entries</span>
+
+                        @foreach(request()->except('per_page') as $key=>$value)
+                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                        @endforeach
+
+                    </form>
+                </div>
+
+
+
+                {{-- TABLE --}}
+                <div class="overflow-hidden rounded-xl border">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-600">
+                            <tr>
+                                <th class="px-6 py-3 text-left">ID</th>
+                                <th class="px-6 py-3 text-left">Contract</th>
+                                <th class="px-6 py-3 text-left">Reason</th>
+                                <th class="px-6 py-3 text-left">User</th>
+                                <th class="px-6 py-3 text-left">Status</th>
+                                <th class="px-6 py-3 text-left">Agent</th>
+                                <th class="px-6 py-3 text-left">Created</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y">
+                            @foreach($allTickets as $ticket)
+
+                                @php
+                                    $color = match($ticket->status) {
+                                        'SUBMITTED'=>'bg-orange-100 text-orange-700',
+                                        'ASSIGNED'=>'bg-indigo-100 text-indigo-700',
+                                        'IN_PROGRESS'=>'bg-blue-100 text-blue-700',
+                                        'WAITING_USER'=>'bg-amber-100 text-amber-700',
+                                        'WAITING_CONFIRMATION'=>'bg-purple-100 text-purple-700',
+                                        'RESOLVED'=>'bg-green-100 text-green-700',
+                                        default=>'bg-gray-100 text-gray-600'
+                                    };
+                                @endphp
+
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4">#{{ $ticket->id }}</td>
+                                    <td class="px-6 py-4">{{ $ticket->contract_number }}</td>
+                                    <td class="px-6 py-4">{{ $ticket->complaint_reason }}</td>
+                                    <td class="px-6 py-4">{{ $ticket->user->name }}</td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-3 py-1 rounded-full text-xs font-medium {{ $color }}">
+                                            {{ str_replace('_',' ', $ticket->status) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        {{ optional($ticket->agent)->name ?? '-' }}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        {{ $ticket->created_at->diffForHumans() }}
+                                    </td>
+                                    <td class="px-6 py-4 text-indigo-600">
+                                        <a href="{{ route('supervisor.complaints.show', $ticket) }}">
+                                            View →
+                                        </a>
+                                    </td>
+                                </tr>
+
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- PAGINATION --}}
+                <div>
+                    {{ $allTickets->links() }}
+                </div>
+
+            @endif
+
+        </div>
     </div>
 
 
+        </div>
     </div>
+
 </x-app-layout>

@@ -18,15 +18,15 @@ class SupervisorComplaintController extends Controller
     {
 
         $columns = [
-            'SUBMITTED' => 'Incoming',
-            'ASSIGNED' => 'Assigned',
-            'IN_PROGRESS' => 'In Progress',
-            'WAITING_USER' => 'Waiting User',
-            'RESOLVED' => 'Resolved',
+            'SUBMITTED' => 'SUBMITTED',
+            'ASSIGNED' => 'ASSIGNED',
+            'IN_PROGRESS' => 'IN PROGRESS',
+            'WAITING_USER' => 'WAITING USER',
+            'RESOLVED' => 'RESOLVED',
         ];
 
         $metrics = [
-            'incoming' => Complaint::whereNull('agent_id')->count(),
+            'incoming' => Complaint::where('status', 'SUBMITTED')->count(),
             'assigned' => Complaint::where('status', 'ASSIGNED')->count(),
             'in_progress' => Complaint::where('status', 'IN_PROGRESS')->count(),
             'breached' => Complaint::resolutionSlaBreached()->count(),
@@ -43,30 +43,47 @@ class SupervisorComplaintController extends Controller
                 ->get();
         }
 
-        return view('supervisor.dashboard', compact('board', 'columns', 'metrics'));
+        /*
+        |--------------------------------------------------------------------------
+        | TABLE MODE (paginated + filtered)
+        |--------------------------------------------------------------------------
+        */
+        $perPage = $request->per_page ?? 50;
 
+        $tableQuery = Complaint::with(['user', 'agent']);
 
-        // $complaints = Complaint::whereIn('status', ['SUBMITTED', 'IN_REVIEW', 'ASSIGNED'])
-        //     ->latest()
-        //     ->get();
+        if ($request->status && $request->status !== 'ALL') {
+            $tableQuery->where('status', $request->status);
+        }
 
-        // $departments = Department::all();
+        // Date From
+        if ($request->from) {
+            $tableQuery->whereDate('created_at', '>=', $request->from);
+        }
 
-        // // semua agent, nanti difilter di view
-        // $agents = User::where('role', 'AGENT')->get();
+        // Date To
+        if ($request->to) {
+            $tableQuery->whereDate('created_at', '<=', $request->to);
+        }
 
-        // $responseBreached = Complaint::responseSlaBreached()->pluck('id')->toArray();
-        // $resolutionBreached = Complaint::resolutionSlaBreached()->pluck('id')->toArray();
+        // Search Filter
+        if ($request->search) {
+            $search = $request->search;
+            $tableQuery->where(function ($q) use ($search) {
+                $q->where('contract_number', 'ilike', "%{$search}%")
+                  ->orWhere('complaint_reason', 'ilike', "%{$search}%")
+                  ->orWhereHas('user', function ($q2) use ($search) {
+                      $q2->where('name', 'ilike', "%{$search}%");
+                  });
+            });
+        }
 
-        // return view(
-        //     'supervisor.complaints.index',
-        //     compact(
-        //         'complaints',
-        //         'departments',
-        //         'agents',
-        //         'responseBreached',
-        //         'resolutionBreached')
-        // );
+        $allTickets = $tableQuery
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return view('supervisor.dashboard', compact('board', 'columns', 'metrics', 'allTickets'));
     }
 
     public function show(Complaint $complaint)
@@ -130,14 +147,18 @@ class SupervisorComplaintController extends Controller
         $validated = $request->validate([
             'department_id' => ['required', 'exists:departments,id'],
             'agent_id' => ['required', 'exists:users,id'],
+            'sla_resolution_deadline' => ['nullable', 'date', 'after:now'],
         ]);
+
+        $resolutionDeadline = $request->sla_resolution_deadline
+            ? \Carbon\Carbon::parse($request->sla_resolution_deadline)
+            : $assignedAt->copy()->addDays(3);
 
         // pastikan agent memang AGENT dan satu department
         $agent = User::where('id', $validated['agent_id'])
             ->where('role', 'AGENT')
             ->where('department_id', $complaint->department_id)
             ->firstOrFail();
-        dd($agent);
         $complaint->update([
             'department_id' => $validated['department_id'],
             'agent_id' => $agent->id,
@@ -147,7 +168,7 @@ class SupervisorComplaintController extends Controller
             // SLA start
             'assigned_at' => $assignedAt,
             'sla_response_deadline' => $assignedAt->copy()->addHours(24),
-            'sla_resolution_deadline' => $assignedAt->copy()->addDays(3),
+            'sla_resolution_deadline' => $resolutionDeadline,
         ]);
 
         return back()->with('success', 'Complaint assigned to agent.');
@@ -156,13 +177,13 @@ class SupervisorComplaintController extends Controller
     public function reassign(Request $request, Complaint $complaint)
     {
         $request->validate([
+            'department_id' => ['required', 'exists:departments,id'],
             'agent_id' => ['required', 'exists:users,id'],
             'reason' => ['required', 'string', 'min:5'],
+            'sla_resolution_deadline' => ['nullable', 'date', 'after:now'],
         ]);
 
         $user = $request->user();
-
-        $oldAgent = $complaint->agent_id;
 
         if (!$complaint->canBeReassigned()) {
             return back()->withErrors([
@@ -170,37 +191,104 @@ class SupervisorComplaintController extends Controller
             ]);
         }
 
+        $resolutionDeadline = $request->sla_resolution_deadline
+            ? \Carbon\Carbon::parse($request->sla_resolution_deadline)
+            : now()->addDays(3);
 
-        // Save history
+        // Create pending reassignment
         ComplaintAssignment::create([
             'complaint_id' => $complaint->id,
-            'from_agent_id' => $oldAgent,
+            'from_agent_id' => $complaint->agent_id,
             'to_agent_id' => $request->agent_id,
+            'to_department_id' => $request->department_id,
             'assigned_by' => $user->id,
             'reason' => $request->reason,
+            'status' => 'PENDING',
+            'sla_resolution_deadline' => $resolutionDeadline,
         ]);
 
-        // Reset SLA (example 24h)
-        $newDeadline = now()->addHours(24);
-
-        // Update complaint
+        // Set complaint to pending reassign
         $complaint->update([
-            'agent_id' => $request->agent_id,
-            'assigned_by' => $user->id,
-            'assigned_at' => now(),
-            'status' => 'ASSIGNED',
-            'sla_resolution_deadline' => $newDeadline,
+            'status' => 'PENDING_REASSIGN',
         ]);
 
         ComplaintInternalNote::create([
             'complaint_id' => $complaint->id,
-            'user_id' => $user->id, // supervisor
-            'note' => "Complaint reassigned from Agent ID {$oldAgent} to Agent ID {$request->agent_id}. Reason: {$request->reason}",
+            'user_id' => $user->id,
+            'note' => "Reassign requested: to Agent ID {$request->agent_id}. Awaiting confirmation from current agent. Reason: {$request->reason}",
         ]);
 
-
-        return back()->with('success', 'Complaint reassigned successfully.');
+        return back()->with('success', 'Reassign request sent. Waiting for agent confirmation.');
     }
 
+
+    public function history(Request $request)
+    {
+        $query = Complaint::with(['user', 'agent', 'department'])
+            ->whereIn('status', ['RESOLVED', 'CLOSED']);
+
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('contract_number', 'ilike', "%{$search}%")
+                  ->orWhere('complaint_reason', 'ilike', "%{$search}%")
+                  ->orWhereHas('user', function ($q2) use ($search) {
+                      $q2->where('name', 'ilike', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($request->from) {
+            $query->whereDate('created_at', '>=', $request->from);
+        }
+
+        if ($request->to) {
+            $query->whereDate('created_at', '<=', $request->to);
+        }
+
+        if ($request->department) {
+            $query->where('department_id', $request->department);
+        }
+
+        $tickets = $query->latest()->paginate(20)->withQueryString();
+        $departments = Department::all();
+
+        return view('supervisor.history', compact('tickets', 'departments'));
+    }
+
+    public function sla(Request $request)
+    {
+        // Response SLA: assigned but no first response yet, approaching or past deadline
+        $responseTickets = Complaint::with(['user', 'agent'])
+            ->whereNotNull('sla_response_deadline')
+            ->whereNull('first_response_at')
+            ->whereNotIn('status', ['RESOLVED', 'CLOSED'])
+            ->where(function ($q) {
+                $q->where('sla_response_deadline', '<', now()) // breached
+                  ->orWhere('sla_response_deadline', '<=', now()->addHours(12)); // at risk
+            })
+            ->orderBy('sla_response_deadline')
+            ->get();
+
+        // Resolution SLA: active tickets with deadline approaching or past
+        $resolutionTickets = Complaint::with(['user', 'agent'])
+            ->whereNotNull('sla_resolution_deadline')
+            ->whereNotIn('status', ['RESOLVED', 'CLOSED'])
+            ->where(function ($q) {
+                $q->where('sla_resolution_deadline', '<', now()) // breached
+                  ->orWhere('sla_resolution_deadline', '<=', now()->addHours(12)); // warning/critical
+            })
+            ->orderBy('sla_resolution_deadline')
+            ->get();
+
+        $metrics = [
+            'response_breached' => Complaint::responseSlaBreached()->count(),
+            'resolution_breached' => Complaint::resolutionSlaBreached()->count(),
+            'critical' => $resolutionTickets->filter(fn($c) => $c->sla_status === 'CRITICAL')->count(),
+            'warning' => $resolutionTickets->filter(fn($c) => $c->sla_status === 'WARNING')->count(),
+        ];
+
+        return view('supervisor.sla', compact('responseTickets', 'resolutionTickets', 'metrics'));
+    }
 
 }

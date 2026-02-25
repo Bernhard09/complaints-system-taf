@@ -105,6 +105,10 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
     Route::get('/user/dashboard', [DashboardController::class, 'user'])
         ->name('user.dashboard');
 
+    // User complaints list
+    Route::get('/user/complaints', [DashboardController::class, 'complaints'])
+        ->name('user.complaints');
+
     // Route::get('/complaints', function () {
     //     return 'USER complaints';
     // });
@@ -138,6 +142,12 @@ Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')
             ->name('supervisor.dashboard');
         Route::get('/dashboardtemp', [SupervisorComplaintController::class, 'index'])
             ->name('supervisor.dashboard.temp');
+
+        Route::get('/history', [SupervisorComplaintController::class, 'history'])
+            ->name('supervisor.history');
+
+        Route::get('/sla', [SupervisorComplaintController::class, 'sla'])
+            ->name('supervisor.sla');
 
         Route::get('/complaints/{complaint}', [SupervisorComplaintController::class, 'show']
         )->name('supervisor.complaints.show');
@@ -202,6 +212,13 @@ Route::middleware(['auth', 'role:AGENT'])->prefix('agent')
     // Close complaint
     Route::post('/complaints/{complaint}/close',[AgentComplaintController::class, 'close'])
         ->name('agent.complaints.close');
+
+    // Reassign confirmation
+    Route::post('/reassign/{assignment}/confirm', [AgentComplaintController::class, 'confirmReassign'])
+        ->name('agent.reassign.confirm');
+
+    Route::post('/reassign/{assignment}/reject', [AgentComplaintController::class, 'rejectReassign'])
+        ->name('agent.reassign.reject');
 
 });
 

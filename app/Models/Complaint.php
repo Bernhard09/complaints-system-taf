@@ -99,7 +99,16 @@ class Complaint extends Model
 
     public function canBeReassigned(): bool
     {
-        return in_array($this->status, ['ASSIGNED', 'IN_PROGRESS']);
+        return in_array($this->status, ['ASSIGNED', 'IN_PROGRESS'])
+            && !$this->pendingReassignment();
+    }
+
+    public function pendingReassignment()
+    {
+        return $this->assignments()
+            ->where('status', 'PENDING')
+            ->latest()
+            ->first();
     }
 
     public function getSlaStatusAttribute()

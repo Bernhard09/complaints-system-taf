@@ -17,38 +17,49 @@ class ComplaintMessageController extends Controller
             403
         );
 
-        if ($complaint->status === 'SUBMITTED' ) {
+        if ($complaint->status === 'SUBMITTED') {
             return back()->with('error', 'Please wait until an agent is assigned.');
         }
 
+        if ($complaint->status === 'RESOLVED') {
+            return back()->with('error', 'This complaint has been resolved.');
+        }
+
         $validated = $request->validate([
-            'message' => ['required', 'string'],
+            'message' => ['required_without:attachment', 'nullable', 'string'],
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
         ]);
 
-        $complaint->messages()->create([
+        $data = [
             'sender_id'   => $user->id,
             'sender_role' => 'USER',
-            'message'     => $validated['message'],
-        ]);
+            'message'     => $validated['message'] ?? '',
+        ];
 
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $data['attachment_path'] = $file->store('chat-attachments', 'public');
+            $data['attachment_name'] = $file->getClientOriginalName();
+        }
 
-        if ($complaint->status === 'ASSIGNED' ) {
+        $complaint->messages()->create($data);
+
+        if ($complaint->status === 'ASSIGNED') {
             return back();
         }
 
-        // User sudah membalas → agent bisa lanjut
-        $complaint->update([
-            'status' => 'IN_PROGRESS',
-        ]);
-
-
+        // WAITING_USER → IN_PROGRESS when user replies
+        if (in_array($complaint->status, ['WAITING_USER', 'WAITING_CONFIRMATION'])) {
+            $complaint->update([
+                'status' => 'IN_PROGRESS',
+            ]);
+        }
 
         return back();
     }
 
     public function storeAgent(Request $request, Complaint $complaint)
     {
-
         $user = $request->user();
 
         // Security
@@ -57,19 +68,30 @@ class ComplaintMessageController extends Controller
             403
         );
 
-
+        if ($complaint->status === 'RESOLVED') {
+            return back()->with('error', 'This complaint has been resolved.');
+        }
 
         $validated = $request->validate([
-            'message' => ['required', 'string'],
+            'message' => ['required_without:attachment', 'nullable', 'string'],
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
         ]);
 
-        $complaint->messages()->create([
+        $data = [
             'sender_id'   => $user->id,
             'sender_role' => 'AGENT',
-            'message'     => $validated['message'],
-        ]);
+            'message'     => $validated['message'] ?? '',
+        ];
 
-        // Jika status masih ASSIGNED, ubah ke IN_PROGRESS
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $data['attachment_path'] = $file->store('chat-attachments', 'public');
+            $data['attachment_name'] = $file->getClientOriginalName();
+        }
+
+        $complaint->messages()->create($data);
+
+        // First response tracking
         if ($complaint->status === 'ASSIGNED' && is_null($complaint->first_response_at)) {
             $complaint->update([
                 'status' => 'IN_PROGRESS',
@@ -77,7 +99,13 @@ class ComplaintMessageController extends Controller
             ]);
         }
 
+        // WAITING_USER → IN_PROGRESS when agent chats
+        if ($complaint->status === 'WAITING_USER') {
+            $complaint->update([
+                'status' => 'IN_PROGRESS',
+            ]);
+        }
+
         return back();
     }
-
 }

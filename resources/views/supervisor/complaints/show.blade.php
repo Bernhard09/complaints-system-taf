@@ -176,6 +176,16 @@
                                 </template>
                             </select>
 
+                            {{-- Resolution SLA Deadline --}}
+                            <div class="mt-3">
+                                <label class="text-xs text-gray-500">Resolution Deadline (optional)</label>
+                                <input type="datetime-local"
+                                       name="sla_resolution_deadline"
+                                       class="w-full mt-1 rounded-lg border text-sm px-3 py-2
+                                              focus:ring-2 focus:ring-indigo-500">
+                                <p class="text-xs text-gray-400 mt-1">Default: 3 days from now</p>
+                            </div>
+
                             <button
                                 class="mt-4 w-full bg-indigo-600 text-white py-2 rounded-lg"
                             >
@@ -203,55 +213,213 @@
                         Actions
                     </h3>
 
-                    {{-- Reassign --}}
-                    @if($complaint->status === 'IN_PROGRESS')
-                        <button
-                            @click="openReassign = true"
-                            class="text-sm text-indigo-600 hover:underline"
-                        >
-                            Reassign
-                        </button>
-                    @endif
+                    <div class="space-y-3">
 
-                    {{-- Reopen --}}
-                    @if($complaint->status === 'RESOLVED')
-                        <form method="POST"
-                              action="{{ route('supervisor.complaints.reopen', $complaint) }}">
-                            @csrf
+                        {{-- Reassign --}}
+                        @if(in_array($complaint->status, ['IN_PROGRESS', 'ASSIGNED']))
                             <button
-                                class="text-sm text-red-600 hover:underline"
+                                @click="openReassign = true"
+                                class="text-sm text-indigo-600 hover:underline"
                             >
-                                Reopen Complaint
+                                Reassign
                             </button>
-                        </form>
-                    @endif
-
-                    {{-- Chat Link --}}
-                    <div class="mt-3">
-                        @if($complaint->agent)
-                            <a href="{{ route('complaints.show', $complaint) }}"
-                               class="text-indigo-600 text-sm hover:underline">
-                                View Conversation →
-                            </a>
-                        @else
-                            <span class="text-gray-300 text-sm cursor-not-allowed">
-                                View Conversation →
-                            </span>
                         @endif
+
+                        {{-- Pending Reassign Info --}}
+                        @if($complaint->status === 'PENDING_REASSIGN')
+                            @php $pending = $complaint->pendingReassignment(); @endphp
+                            @if($pending)
+                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                    <p class="text-xs font-semibold text-amber-700">⏳ Pending Reassign</p>
+                                    <p class="text-xs text-amber-600 mt-1">To: {{ $pending->toAgent?->name ?? 'Unknown' }}</p>
+                                    <p class="text-xs text-amber-600">Dept: {{ $pending->toDepartment?->name ?? 'Unknown' }}</p>
+                                    <p class="text-xs text-gray-500 mt-1">Waiting for agent confirmation</p>
+                                </div>
+                            @endif
+                        @endif
+
+                        {{-- Reopen --}}
+                        @if($complaint->status === 'RESOLVED')
+                            <form method="POST"
+                                  action="{{ route('supervisor.complaints.reopen', $complaint) }}">
+                                @csrf
+                                <button
+                                    class="text-sm text-red-600 hover:underline"
+                                >
+                                    Reopen Complaint
+                                </button>
+                            </form>
+                        @endif
+
+                        {{-- Chat Link --}}
+                        <div>
+                            @if($complaint->agent)
+                                <a href="{{ route('complaints.show', $complaint) }}"
+                                   class="text-indigo-600 text-sm hover:underline">
+                                    View Conversation →
+                                </a>
+                            @else
+                                <span class="text-gray-300 text-sm cursor-not-allowed">
+                                    View Conversation →
+                                </span>
+                            @endif
+                        </div>
+
                     </div>
 
                 </x-ui.card>
 
 
-                {{-- SLA --}}
+                {{-- Activity Log --}}
+                <x-ui.card class="p-6">
+                    <h3 class="text-lg font-semibold mb-4">Activity</h3>
+
+                    <div class="space-y-3 text-sm">
+
+                        {{-- Submitted --}}
+                        <div class="flex items-start gap-2">
+                            <div class="w-2 h-2 rounded-full bg-gray-400 mt-1.5 shrink-0"></div>
+                            <div>
+                                <p>Complaint submitted by <span class="font-medium">{{ $complaint->user->name }}</span></p>
+                                <p class="text-xs text-gray-400">{{ $complaint->created_at->format('d M Y H:i') }}</p>
+                            </div>
+                        </div>
+
+                        {{-- First Assignment --}}
+                        @if($complaint->assigned_at)
+                            <div class="flex items-start gap-2">
+                                <div class="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
+                                <div>
+                                    <p>Assigned to <span class="font-medium">{{ $complaint->agent?->name }}</span></p>
+                                    <p class="text-xs text-gray-400">{{ $complaint->assigned_at->format('d M Y H:i') }}</p>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Reassignment History --}}
+                        @foreach($complaint->assignments()->with(['fromAgent', 'toAgent', 'toDepartment', 'assignedByUser'])->latest()->get() as $assign)
+                            <div class="flex items-start gap-2">
+                                @if($assign->status === 'CONFIRMED')
+                                    <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                                @elseif($assign->status === 'REJECTED')
+                                    <div class="w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0"></div>
+                                @else
+                                    <div class="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0"></div>
+                                @endif
+                                <div>
+                                    <p>
+                                        Reassign
+                                        <span class="font-medium">{{ $assign->fromAgent?->name }}</span>
+                                        → <span class="font-medium">{{ $assign->toAgent?->name }}</span>
+                                        ({{ $assign->toDepartment?->name ?? 'Same dept' }})
+                                    </p>
+                                    <p class="text-xs text-gray-500">By: {{ $assign->assignedByUser?->name }}</p>
+                                    <p class="text-xs text-gray-500">Reason: {{ $assign->reason }}</p>
+
+                                    @if($assign->status === 'CONFIRMED')
+                                        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-600">Confirmed</span>
+                                    @elseif($assign->status === 'REJECTED')
+                                        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-600">Rejected</span>
+                                        <p class="text-xs text-red-500 mt-1">{{ $assign->rejection_reason }}</p>
+                                    @else
+                                        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-600">Pending</span>
+                                    @endif
+
+                                    <p class="text-xs text-gray-400">{{ $assign->created_at->format('d M Y H:i') }}</p>
+                                </div>
+                            </div>
+                        @endforeach
+
+                        {{-- First Response --}}
+                        @if($complaint->first_response_at)
+                            <div class="flex items-start gap-2">
+                                <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                                <div>
+                                    <p>Agent first response</p>
+                                    <p class="text-xs text-gray-400">{{ $complaint->first_response_at->format('d M Y H:i') }}</p>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Resolved --}}
+                        @if($complaint->resolved_at)
+                            <div class="flex items-start gap-2">
+                                <div class="w-2 h-2 rounded-full bg-green-600 mt-1.5 shrink-0"></div>
+                                <div>
+                                    <p>Complaint resolved</p>
+                                    <p class="text-xs text-gray-400">{{ $complaint->resolved_at->format('d M Y H:i') }}</p>
+                                </div>
+                            </div>
+                        @endif
+
+                    </div>
+                </x-ui.card>
+
+
+                {{-- SLA Information --}}
                 <x-ui.card class="p-6">
                     <h3 class="text-lg font-semibold mb-4">
                         SLA Information
                     </h3>
 
-                    <div class="text-sm text-gray-600">
-                        Status: {{ $complaint->status }}
-                    </div>
+                    @if($complaint->status === 'SUBMITTED')
+                        <p class="text-sm text-gray-400">SLA will start after assignment.</p>
+                    @else
+                        <div class="space-y-4 text-sm">
+
+                            {{-- Response SLA --}}
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase">Response SLA</p>
+                                @if($complaint->first_response_at)
+                                    <p class="text-green-600 font-medium">
+                                        ✓ Responded {{ $complaint->first_response_at->diffForHumans() }}
+                                    </p>
+                                @elseif($complaint->sla_response_deadline)
+                                    @php $respBreached = now()->greaterThan($complaint->sla_response_deadline); @endphp
+                                    <p class="font-semibold {{ $respBreached ? 'text-red-600' : 'text-gray-700' }}">
+                                        {{ $complaint->sla_response_deadline->format('d M Y H:i') }}
+                                    </p>
+                                    <p class="text-xs {{ $respBreached ? 'text-red-500' : 'text-gray-500' }}">
+                                        {{ $respBreached ? 'BREACHED' : $complaint->sla_response_deadline->diffForHumans() }}
+                                    </p>
+                                @else
+                                    <p class="text-gray-400">Not set</p>
+                                @endif
+                            </div>
+
+                            {{-- Resolution SLA --}}
+                            <div>
+                                <p class="text-gray-400 text-xs uppercase">Resolution SLA</p>
+                                @if($complaint->sla_resolution_deadline)
+                                    @php
+                                        $resDeadline = $complaint->sla_resolution_deadline;
+                                        $slaStatus = $complaint->sla_status;
+                                        $slaColor = match($slaStatus) {
+                                            'BREACHED' => 'text-red-600',
+                                            'CRITICAL' => 'text-orange-600',
+                                            'WARNING'  => 'text-yellow-600',
+                                            default    => 'text-gray-700',
+                                        };
+                                    @endphp
+                                    <p class="font-semibold {{ $slaColor }}">
+                                        {{ $resDeadline->format('d M Y H:i') }}
+                                    </p>
+                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                        {{ match($slaStatus) {
+                                            'BREACHED' => 'bg-red-100 text-red-600',
+                                            'CRITICAL' => 'bg-orange-100 text-orange-600',
+                                            'WARNING'  => 'bg-yellow-100 text-yellow-600',
+                                            default    => 'bg-green-100 text-green-600',
+                                        } }}">
+                                        {{ $slaStatus }}
+                                    </span>
+                                @else
+                                    <p class="text-gray-400">Not set</p>
+                                @endif
+                            </div>
+
+                        </div>
+                    @endif
                 </x-ui.card>
 
             </div>
@@ -319,13 +487,23 @@
 
                 {{-- Reason --}}
                 <div class="mb-4">
-                    <label class="text-xs text-gray-500">Reason</label>
+                    <label class="text-xs text-gray-500">Reason for Reassign</label>
                     <textarea
                         name="reason"
                         rows="3"
                         required
+                        placeholder="Explain why this complaint needs to be reassigned..."
                         class="w-full rounded-lg border"
                     ></textarea>
+                </div>
+
+                {{-- Resolution SLA Deadline --}}
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500">New Resolution Deadline (optional)</label>
+                    <input type="datetime-local"
+                           name="sla_resolution_deadline"
+                           class="w-full mt-1 rounded-lg border text-sm px-3 py-2">
+                    <p class="text-xs text-gray-400 mt-1">Default: 3 days from confirmation</p>
                 </div>
 
                 <div class="flex justify-end gap-3">

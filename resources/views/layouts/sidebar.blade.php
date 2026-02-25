@@ -24,48 +24,132 @@
         {{-- NAV --}}
         <nav class="flex-1 px-4 py-6 text-sm space-y-8 overflow-y-auto">
 
-            {{-- WORKSPACE --}}
-            <div>
-                <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
-                   x-show="!collapsed">
-                    Workspace
-                </p>
+            @php $role = auth()->user()->role; @endphp
 
-                <div class="space-y-1">
+            {{-- =========== AGENT SIDEBAR =========== --}}
+            @if($role === 'AGENT')
 
-                    <a href="{{ route('agent.dashboard') }}"
-                       class="sidebar-link {{ request()->routeIs('agent.dashboard') ? 'active' : '' }}">
+                {{-- WORKSPACE --}}
+                <div>
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                       x-show="!collapsed">
+                        Workspace
+                    </p>
 
-                        <x-heroicon-o-home class="w-5 h-5" />
-                        <span x-show="!collapsed">Dashboard</span>
-                    </a>
+                    <div class="space-y-1">
 
-                    <a href="{{ route('agent.history') }}"
-                       class="sidebar-link {{ request()->routeIs('agent.history') ? 'active' : '' }}">
+                        <a href="{{ route('agent.dashboard') }}"
+                           class="sidebar-link {{ request()->routeIs('agent.dashboard') ? 'active' : '' }}">
 
-                        <x-heroicon-o-archive-box class="w-5 h-5" />
-                        <span x-show="!collapsed">Complaint History</span>
-                    </a>
+                            <x-heroicon-o-home class="w-5 h-5" />
+                            <span x-show="!collapsed">Dashboard</span>
+                        </a>
 
+                        <a href="{{ route('agent.history') }}"
+                           class="sidebar-link {{ request()->routeIs('agent.history') ? 'active' : '' }}">
+
+                            <x-heroicon-o-archive-box class="w-5 h-5" />
+                            <span x-show="!collapsed">Complaint History</span>
+                        </a>
+
+                    </div>
                 </div>
-            </div>
 
-            {{-- MONITORING --}}
-            <div>
-                <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
-                   x-show="!collapsed">
-                    Monitoring
-                </p>
+                {{-- MONITORING --}}
+                <div>
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                       x-show="!collapsed">
+                        Monitoring
+                    </p>
 
-                <a href="{{ route('agent.sla') }}"
-                   class="sidebar-link {{ request()->routeIs('agent.sla') ? 'active' : '' }}">
+                    <a href="{{ route('agent.sla') }}"
+                       class="sidebar-link {{ request()->routeIs('agent.sla') ? 'active' : '' }}">
 
-                    <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
-                    <span x-show="!collapsed">SLA Monitor</span>
-                </a>
-            </div>
+                        <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
+                        <span x-show="!collapsed">SLA Monitor</span>
+                    </a>
+                </div>
 
-            {{-- ACCOUNT --}}
+            @endif
+
+            {{-- =========== SUPERVISOR SIDEBAR =========== --}}
+            @if($role === 'SUPERVISOR')
+
+                {{-- WORKSPACE --}}
+                <div>
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                       x-show="!collapsed">
+                        Workspace
+                    </p>
+
+                    <div class="space-y-1">
+
+                        <a href="{{ route('supervisor.dashboard') }}"
+                           class="sidebar-link {{ request()->routeIs('supervisor.dashboard') ? 'active' : '' }}">
+
+                            <x-heroicon-o-home class="w-5 h-5" />
+                            <span x-show="!collapsed">Dashboard</span>
+                        </a>
+
+                        <a href="{{ route('supervisor.history') }}"
+                           class="sidebar-link {{ request()->routeIs('supervisor.history') ? 'active' : '' }}">
+
+                            <x-heroicon-o-archive-box class="w-5 h-5" />
+                            <span x-show="!collapsed">Complaint History</span>
+                        </a>
+
+                    </div>
+                </div>
+
+                {{-- MONITORING --}}
+                <div>
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                       x-show="!collapsed">
+                        Monitoring
+                    </p>
+
+                    <a href="{{ route('supervisor.sla') }}"
+                       class="sidebar-link {{ request()->routeIs('supervisor.sla') ? 'active' : '' }}">
+
+                        <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
+                        <span x-show="!collapsed">SLA Monitor</span>
+                    </a>
+                </div>
+
+            @endif
+
+            {{-- =========== USER SIDEBAR =========== --}}
+            @if($role === 'USER')
+
+                {{-- WORKSPACE --}}
+                <div>
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                       x-show="!collapsed">
+                        Workspace
+                    </p>
+
+                    <div class="space-y-1">
+
+                        <a href="{{ route('user.dashboard') }}"
+                           class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}">
+
+                            <x-heroicon-o-home class="w-5 h-5" />
+                            <span x-show="!collapsed">Dashboard</span>
+                        </a>
+
+                        <a href="{{ route('user.complaints') }}"
+                           class="sidebar-link {{ request()->routeIs('user.complaints') ? 'active' : '' }}">
+
+                            <x-heroicon-o-document-text class="w-5 h-5" />
+                            <span x-show="!collapsed">Complaints</span>
+                        </a>
+
+                    </div>
+                </div>
+
+            @endif
+
+            {{-- =========== ACCOUNT (shared) =========== --}}
             <div>
                 <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                    x-show="!collapsed">

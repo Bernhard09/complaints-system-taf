@@ -68,11 +68,11 @@
             {{-- ================= UNIFIED BOARD CARD ================= --}}
             @php
                 $columns = [
-                    'ASSIGNED'=>'Assigned',
-                    'IN_PROGRESS'=>'In Progress',
-                    'WAITING_USER'=>'Waiting User',
-                    'WAITING_CONFIRMATION'=>'Waiting Confirmation',
-                    'RESOLVED'=>'Resolved'
+                    'ASSIGNED'=>'ASSIGNED',
+                    'IN_PROGRESS'=>'IN PROGRESS',
+                    'WAITING_USER'=>'WAITING USER',
+                    'WAITING_CONFIRMATION'=>'WAITING CONFIRMATION',
+                    'RESOLVED'=>'RESOLVED'
                 ];
             @endphp
 
@@ -83,105 +83,90 @@
                 <div class="p-6 space-y-6">
 
                     {{-- ================= TOGGLE ROW ================= --}}
-                    {{-- ================= FILTER PANEL ================= --}}
-                    <div id="filter-panel"
-                        class="hidden bg-gray-50 border rounded-xl p-4">
-
-                        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-
-                            {{-- Keep existing query --}}
-                            @foreach(request()->except(['from','to','sla']) as $key=>$value)
-                                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                            @endforeach
-
-                            {{-- FROM DATE --}}
-                            <div>
-                                <label class="text-xs text-gray-500">From</label>
-                                <input type="date"
-                                    name="from"
-                                    value="{{ request('from') }}"
-                                    class="w-full mt-1 border rounded-lg px-3 py-2 text-sm
-                                            focus:ring-2 focus:ring-indigo-500">
-                            </div>
-
-                            {{-- TO DATE --}}
-                            <div>
-                                <label class="text-xs text-gray-500">To</label>
-                                <input type="date"
-                                    name="to"
-                                    value="{{ request('to') }}"
-                                    class="w-full mt-1 border rounded-lg px-3 py-2 text-sm
-                                            focus:ring-2 focus:ring-indigo-500">
-                            </div>
-
-                            {{-- SLA STATUS --}}
-                            <div>
-                                <label class="text-xs text-gray-500">SLA</label>
-                                <select name="sla"
-                                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm
-                                            focus:ring-2 focus:ring-indigo-500">
-
-                                    <option value="">All</option>
-                                    <option value="BREACHED" {{ request('sla')=='BREACHED'?'selected':'' }}>
-                                        Breached
-                                    </option>
-                                    <option value="CRITICAL" {{ request('sla')=='CRITICAL'?'selected':'' }}>
-                                        Critical
-                                    </option>
-                                    <option value="WARNING" {{ request('sla')=='WARNING'?'selected':'' }}>
-                                        Warning
-                                    </option>
-
-                                </select>
-                            </div>
-
-                            {{-- BUTTONS --}}
-                            <div class="flex items-end gap-2">
-
-                                <button type="submit"
-                                        class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm">
-                                    Apply
-                                </button>
-
-                                <a href="{{ url()->current() }}?view={{ request('view','kanban') }}"
-                                class="px-4 py-2 rounded-lg bg-gray-200 text-sm">
-                                    Reset
-                                </a>
-
-                            </div>
-
-                        </form>
-                    </div>
-
                     <div class="flex justify-between items-center">
 
                         <div class="flex gap-3">
 
                             <a href="{{ request()->fullUrlWithQuery(['view'=>'kanban']) }}"
-                               class="px-4 py-2 rounded-lg text-sm
-                               {{ request('view','kanban')==='kanban'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                                Kanban
+                                class="px-4 py-2 rounded-lg text-sm
+                                {{ request('view','kanban')==='kanban'
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+                                    Kanban
                             </a>
 
                             <a href="{{ request()->fullUrlWithQuery(['view'=>'table']) }}"
-                               class="px-4 py-2 rounded-lg text-sm
-                               {{ request('view')==='table'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                                Table
+                                class="px-4 py-2 rounded-lg text-sm
+                                {{ request('view')==='table'
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+                                    Table
                             </a>
-
-                            <button type="button"
-                                    onclick="document.getElementById('filter-panel').classList.toggle('hidden')"
-                                    class="px-4 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200">
-                                Filter
-                            </button>
 
                         </div>
 
                     </div>
+
+                    {{-- ================= FILTER PANEL (auto-visible in table mode) ================= --}}
+                    @if(request('view') === 'table')
+                        <div class="bg-gray-50 border rounded-xl p-4">
+
+                            <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                                {{-- Keep existing query --}}
+                                @foreach(request()->except(['from','to','search']) as $key=>$value)
+                                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                @endforeach
+
+                                {{-- FROM DATE --}}
+                                <div>
+                                    <label class="text-xs text-gray-500">From</label>
+                                    <input type="date"
+                                        name="from"
+                                        value="{{ request('from') }}"
+                                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm
+                                                focus:ring-2 focus:ring-indigo-500">
+                                </div>
+
+                                {{-- TO DATE --}}
+                                <div>
+                                    <label class="text-xs text-gray-500">To</label>
+                                    <input type="date"
+                                        name="to"
+                                        value="{{ request('to') }}"
+                                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm
+                                                focus:ring-2 focus:ring-indigo-500">
+                                </div>
+
+                                {{-- SEARCH --}}
+                                <div>
+                                    <label class="text-xs text-gray-500">Search</label>
+                                    <input type="text"
+                                        name="search"
+                                        value="{{ request('search') }}"
+                                        placeholder="Contract, reason, or user..."
+                                        class="w-full mt-1 border rounded-lg px-3 py-2 text-sm
+                                                focus:ring-2 focus:ring-indigo-500">
+                                </div>
+
+                                {{-- BUTTONS --}}
+                                <div class="flex items-end gap-2">
+
+                                    <button type="submit"
+                                            class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm">
+                                        Apply
+                                    </button>
+
+                                    <a href="{{ url()->current() }}?view=table"
+                                    class="px-4 py-2 rounded-lg bg-gray-200 text-sm">
+                                        Reset
+                                    </a>
+
+                                </div>
+
+                            </form>
+                        </div>
+                    @endif
 
 
 

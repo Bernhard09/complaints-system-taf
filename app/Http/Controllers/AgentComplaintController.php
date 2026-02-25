@@ -118,25 +118,16 @@ class AgentComplaintController extends Controller
             $tableQuery->whereDate('created_at', '<=', $request->to);
         }
 
-        // SLA Filter (FIXED)
-        if ($request->sla === 'BREACHED') {
-            $tableQuery
-                ->whereNotNull('sla_resolution_deadline')
-                ->where('sla_resolution_deadline', '<', now());
-        }
-
-        if ($request->sla === 'CRITICAL') {
-            $tableQuery
-                ->whereNotNull('sla_resolution_deadline')
-                ->where('sla_resolution_deadline', '>=', now())
-                ->where('sla_resolution_deadline', '<=', now()->addHours(4));
-        }
-
-        if ($request->sla === 'WARNING') {
-            $tableQuery
-                ->whereNotNull('sla_resolution_deadline')
-                ->where('sla_resolution_deadline', '>', now()->addHours(4))
-                ->where('sla_resolution_deadline', '<=', now()->addHours(12));
+        // Search Filter
+        if ($request->search) {
+            $search = $request->search;
+            $tableQuery->where(function ($q) use ($search) {
+                $q->where('contract_number', 'ilike', "%{$search}%")
+                  ->orWhere('complaint_reason', 'ilike', "%{$search}%")
+                  ->orWhereHas('user', function ($q2) use ($search) {
+                      $q2->where('name', 'ilike', "%{$search}%");
+                  });
+            });
         }
         return view('agent.dashboard', [
             'pageTitle' => 'Dashboard',
@@ -192,14 +183,48 @@ class AgentComplaintController extends Controller
     {
         $agent = $request->user();
 
-        $tickets = Complaint::where('agent_id', $agent->id)
-            ->whereNotNull('sla_resolution_deadline')
-            ->whereNotIn('status', ['RESOLVED'])
+        // Response SLA: my tickets with no first response yet, at risk or breached
+        $responseTickets = Complaint::where('agent_id', $agent->id)
             ->with('user')
+            ->whereNotNull('sla_response_deadline')
+            ->whereNull('first_response_at')
+            ->whereNotIn('status', ['RESOLVED', 'CLOSED'])
+            ->where(function ($q) {
+                $q->where('sla_response_deadline', '<', now())
+                  ->orWhere('sla_response_deadline', '<=', now()->addHours(12));
+            })
+            ->orderBy('sla_response_deadline')
+            ->get();
+
+        // Resolution SLA: my tickets with deadline approaching or breached
+        $resolutionTickets = Complaint::where('agent_id', $agent->id)
+            ->with('user')
+            ->whereNotNull('sla_resolution_deadline')
+            ->whereNotIn('status', ['RESOLVED', 'CLOSED'])
+            ->where(function ($q) {
+                $q->where('sla_resolution_deadline', '<', now())
+                  ->orWhere('sla_resolution_deadline', '<=', now()->addHours(12));
+            })
             ->orderBy('sla_resolution_deadline')
             ->get();
 
-        return view('agent.sla', compact('tickets'));
+        $metrics = [
+            'response_breached' => Complaint::where('agent_id', $agent->id)
+                ->whereNotNull('sla_response_deadline')
+                ->whereNull('first_response_at')
+                ->where('sla_response_deadline', '<', now())
+                ->whereNotIn('status', ['RESOLVED', 'CLOSED'])
+                ->count(),
+            'resolution_breached' => Complaint::where('agent_id', $agent->id)
+                ->whereNotNull('sla_resolution_deadline')
+                ->where('sla_resolution_deadline', '<', now())
+                ->whereNotIn('status', ['RESOLVED', 'CLOSED'])
+                ->count(),
+            'critical' => $resolutionTickets->filter(fn($c) => $c->sla_status === 'CRITICAL')->count(),
+            'warning' => $resolutionTickets->filter(fn($c) => $c->sla_status === 'WARNING')->count(),
+        ];
+
+        return view('agent.sla', compact('responseTickets', 'resolutionTickets', 'metrics'));
     }
 
     public function markWaiting(Request $request,Complaint $complaint)
@@ -255,6 +280,96 @@ class AgentComplaintController extends Controller
         ]);
 
         return back()->with('success', 'Complaint closed');
+    }
+
+    public function confirmReassign(Request $request, \App\Models\ComplaintAssignment $assignment)
+    {
+        $user = $request->user();
+
+        // Only the current (old) agent can confirm
+        abort_unless(
+            $user->role === 'AGENT'
+            && $assignment->from_agent_id === $user->id
+            && $assignment->status === 'PENDING',
+            403
+        );
+
+        $complaint = $assignment->complaint;
+        $assignedAt = now();
+
+        // Update assignment record
+        $assignment->update([
+            'status' => 'CONFIRMED',
+            'confirmed_at' => $assignedAt,
+        ]);
+
+        // Transfer complaint to new agent
+        $complaint->update([
+            'department_id' => $assignment->to_department_id,
+            'agent_id' => $assignment->to_agent_id,
+            'assigned_by' => $assignment->assigned_by,
+            'assigned_at' => $assignedAt,
+            'status' => 'ASSIGNED',
+            'first_response_at' => null,
+            'sla_response_deadline' => $assignedAt->copy()->addHours(24),
+            'sla_resolution_deadline' => $assignment->sla_resolution_deadline,
+        ]);
+
+        // Add system message in chat
+        \App\Models\ComplaintMessage::create([
+            'complaint_id' => $complaint->id,
+            'sender_id' => $user->id,
+            'message' => "⟳ This complaint has been reassigned from {$user->name} to a new agent. Reason: {$assignment->reason}",
+            'is_system' => true,
+        ]);
+
+        // Internal note
+        \App\Models\ComplaintInternalNote::create([
+            'complaint_id' => $complaint->id,
+            'user_id' => $user->id,
+            'note' => "Reassign confirmed by {$user->name}. Transferred to Agent ID {$assignment->to_agent_id}.",
+        ]);
+
+        return redirect()->route('agent.dashboard')->with('success', 'Reassign confirmed. Complaint transferred.');
+    }
+
+    public function rejectReassign(Request $request, \App\Models\ComplaintAssignment $assignment)
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $user->role === 'AGENT'
+            && $assignment->from_agent_id === $user->id
+            && $assignment->status === 'PENDING',
+            403
+        );
+
+        $request->validate([
+            'rejection_reason' => ['required', 'string', 'min:5'],
+        ]);
+
+        $complaint = $assignment->complaint;
+
+        // Update assignment record
+        $assignment->update([
+            'status' => 'REJECTED',
+            'rejection_reason' => $request->rejection_reason,
+            'confirmed_at' => now(),
+        ]);
+
+        // Revert complaint status
+        $complaint->update([
+            'status' => 'IN_PROGRESS',
+        ]);
+
+        // Internal note
+        \App\Models\ComplaintInternalNote::create([
+            'complaint_id' => $complaint->id,
+            'user_id' => $user->id,
+            'note' => "Reassign rejected by {$user->name}. Reason: {$request->rejection_reason}",
+        ]);
+
+        return back()->with('success', 'Reassign rejected. Complaint remains with you.');
     }
 
 }

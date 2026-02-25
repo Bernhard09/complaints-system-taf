@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <title>{{ config('app.name') }}</title>
 
+            <!-- Fonts -->
+        <link rel="preconnect" href="https://fonts.bunny.net">
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -15,17 +19,17 @@
 
     {{-- MOBILE OVERLAY --}}
     <div x-show="mobileOpen"
-         class="fixed inset-0 bg-black/40 z-40 md:hidden"
-         @click="mobileOpen = false">
+            class="fixed inset-0 bg-black/40 z-40 md:hidden"
+            @click="mobileOpen = false">
     </div>
 
     {{-- SIDEBAR --}}
     <aside
         :class="collapsed ? 'w-20' : 'w-64'"
         class="bg-white border-r border-gray-200
-               transition-all duration-300
-               h-screen
-               hidden md:flex md:flex-col">
+                transition-all duration-300
+                h-screen
+                hidden md:flex md:flex-col">
 
         @include('layouts.sidebar')
     </aside>
