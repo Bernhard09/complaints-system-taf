@@ -3,6 +3,7 @@
     'value',
     'color' => 'gray',
     'link' => null,
+    'pollKey' => null,
 ])
 
 @php
@@ -20,7 +21,7 @@
     <div class="flex items-center justify-between">
         <div>
             <p class="text-sm text-gray-500">{{ $title }}</p>
-            <p class="text-3xl font-semibold mt-2">{{ $value }}</p>
+            <p class="text-3xl font-semibold mt-2" @if($pollKey) data-poll-key="{{ $pollKey }}" @endif>{{ $value }}</p>
         </div>
 
         <div class="w-12 h-12 rounded-xl flex items-center justify-center {{ $iconColor }}">

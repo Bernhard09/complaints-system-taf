@@ -115,4 +115,88 @@ class DashboardController extends Controller
             'overdue'
         ));
     }
+
+    // ────────────────────────────────────────────────────
+    //  JSON poll endpoints for real-time dashboard updates
+    // ────────────────────────────────────────────────────
+
+    public function pollUser(Request $request)
+    {
+        $user = $request->user();
+        $complaints = Complaint::where('user_id', $user->id);
+
+        return response()->json([
+            'ongoing'  => (clone $complaints)->whereIn('status', ['SUBMITTED','ASSIGNED','IN_PROGRESS','WAITING_USER'])->count(),
+            'resolved' => (clone $complaints)->where('status', 'RESOLVED')->count(),
+            'waiting'  => (clone $complaints)->where('status', 'WAITING_USER')->count(),
+            'total'    => $complaints->count(),
+            'recent'   => Complaint::where('user_id', $user->id)
+                ->latest()->take(4)->get()
+                ->map(fn ($c) => [
+                    'id'     => $c->id,
+                    'reason' => $c->complaint_reason,
+                    'status' => $c->status,
+                    'date'   => $c->created_at->diffForHumans(),
+                    'url'    => route('complaints.show', $c),
+                ]),
+        ]);
+    }
+
+    public function pollAgent(Request $request)
+    {
+        $user = $request->user();
+        $complaints = Complaint::where('agent_id', $user->id)->get();
+
+        return response()->json([
+            'active'       => $complaints->whereIn('status', ['ASSIGNED','IN_PROGRESS','WAITING_USER'])->count(),
+            'waiting'      => $complaints->where('status', 'WAITING_USER')->count(),
+            'breached'     => $complaints->filter(fn ($c) => $c->isResolutionSlaBreached())->count(),
+            'resolved_today' => $complaints->where('status', 'RESOLVED')
+                ->filter(fn ($c) => $c->resolved_at && $c->resolved_at->isToday())->count(),
+            'complaints'   => $complaints->map(fn ($c) => [
+                'id'     => $c->id,
+                'status' => $c->status,
+            ])->values(),
+        ]);
+    }
+
+    public function pollSupervisor()
+    {
+        $complaints = Complaint::all();
+
+        return response()->json([
+            'incoming'       => $complaints->where('status', 'SUBMITTED')->count(),
+            'assigned'       => $complaints->where('status', 'ASSIGNED')->count(),
+            'in_progress'    => $complaints->where('status', 'IN_PROGRESS')->count(),
+            'breached'       => $complaints->filter(fn ($c) => $c->isResolutionSlaBreached())->count(),
+            'resolved_today' => $complaints->where('status', 'RESOLVED')
+                ->filter(fn ($c) => $c->resolved_at && $c->resolved_at->isToday())->count(),
+            'complaints'     => $complaints->map(fn ($c) => [
+                'id'     => $c->id,
+                'status' => $c->status,
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Poll complaint status (used on complaints.show page).
+     */
+    public function pollComplaintStatus(Request $request, Complaint $complaint)
+    {
+        $user = $request->user();
+        abort_unless(
+            $complaint->user_id === $user->id
+            || $complaint->agent_id === $user->id
+            || $user->role === 'SUPERVISOR',
+            403
+        );
+
+        $complaint->refresh();
+
+        return response()->json([
+            'status'     => $complaint->status,
+            'sla_status' => $complaint->sla_status,
+            'agent'      => $complaint->agent ? $complaint->agent->name : null,
+        ]);
+    }
 }

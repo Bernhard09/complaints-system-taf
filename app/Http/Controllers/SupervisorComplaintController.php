@@ -10,6 +10,7 @@ use App\Models\ComplaintInternalNote;
 
 
 use Illuminate\Http\Request;
+use App\Services\NotificationService;
 
 class SupervisorComplaintController extends Controller
 {
@@ -134,6 +135,22 @@ class SupervisorComplaintController extends Controller
             'sla_resolution_deadline' => $assignedAt->copy()->addDays(3),
         ]);
 
+        // Notify agent
+        NotificationService::send(
+            $agent->id, 'info',
+            'New Complaint Assigned',
+            "Complaint #{$complaint->id} has been assigned to you.",
+            route('complaints.show', $complaint)
+        );
+
+        // Notify user
+        NotificationService::send(
+            $complaint->user_id, 'info',
+            'Complaint Assigned',
+            "Your complaint #{$complaint->id} has been assigned to an agent.",
+            route('complaints.show', $complaint)
+        );
+
         return back()->with('success', 'Complaint assigned to agent.');
     }
 
@@ -170,6 +187,22 @@ class SupervisorComplaintController extends Controller
             'sla_response_deadline' => $assignedAt->copy()->addHours(24),
             'sla_resolution_deadline' => $resolutionDeadline,
         ]);
+
+        // Notify agent
+        NotificationService::send(
+            $agent->id, 'info',
+            'New Complaint Assigned',
+            "Complaint #{$complaint->id} has been assigned to you.",
+            route('complaints.show', $complaint)
+        );
+
+        // Notify user
+        NotificationService::send(
+            $complaint->user_id, 'info',
+            'Complaint Assigned',
+            "Your complaint #{$complaint->id} has been assigned to an agent.",
+            route('complaints.show', $complaint)
+        );
 
         return back()->with('success', 'Complaint assigned to agent.');
     }
@@ -217,6 +250,16 @@ class SupervisorComplaintController extends Controller
             'user_id' => $user->id,
             'note' => "Reassign requested: to Agent ID {$request->agent_id}. Awaiting confirmation from current agent. Reason: {$request->reason}",
         ]);
+
+        // Notify current agent about reassign request
+        if ($complaint->agent_id) {
+            NotificationService::send(
+                $complaint->agent_id, 'warning',
+                'Reassign Request',
+                "Supervisor requested to reassign complaint #{$complaint->id}. Please confirm or reject.",
+                route('complaints.show', $complaint)
+            );
+        }
 
         return back()->with('success', 'Reassign request sent. Waiting for agent confirmation.');
     }

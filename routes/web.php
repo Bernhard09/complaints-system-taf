@@ -11,6 +11,7 @@ use App\Http\Controllers\AgentComplaintController;
 use App\Http\Controllers\ComplaintMessageController;
 use App\Http\Controllers\ComplaintInternalNoteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 
 /* Models */
 use App\Models\Complaint;
@@ -23,7 +24,10 @@ use App\Models\ComplaintAttachment;
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
-    return view('welcome');
+    if (Auth::check()) {
+        return redirect('/dashboard');
+    }
+    return redirect('/login');
 });
 
 /*
@@ -91,6 +95,25 @@ Route::middleware('auth')->group(function () {
         );
 
     })->name('attachments.download');
+
+    // Notifications
+    Route::get('/inbox', [NotificationController::class, 'index'])->name('notifications.inbox');
+    Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.markRead');
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'delete'])->name('notifications.delete');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
+    Route::delete('/notifications', [NotificationController::class, 'clearAll'])->name('notifications.clearAll');
+
+    // Chat polling
+    Route::get('/complaints/{complaint}/messages/poll', [ComplaintMessageController::class, 'poll'])->name('complaints.messages.poll');
+
+    // Dashboard polling (per-role)
+    Route::get('/api/poll/user-dashboard', [DashboardController::class, 'pollUser'])->name('poll.user.dashboard');
+    Route::get('/api/poll/agent-dashboard', [DashboardController::class, 'pollAgent'])->name('poll.agent.dashboard');
+    Route::get('/api/poll/supervisor-dashboard', [DashboardController::class, 'pollSupervisor'])->name('poll.supervisor.dashboard');
+
+    // Complaint status polling
+    Route::get('/api/poll/complaint/{complaint}/status', [DashboardController::class, 'pollComplaintStatus'])->name('poll.complaint.status');
 });
 
 /*

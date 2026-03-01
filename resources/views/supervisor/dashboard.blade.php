@@ -13,35 +13,35 @@
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 flex-1 min-w-[160px]">
             <p class="text-xs text-gray-500">UNASSIGNED</p>
-            <p class="text-2xl font-semibold text-orange-500">
+            <p class="text-2xl font-semibold text-orange-500" data-poll-key="incoming">
                 {{ $metrics['incoming'] ?? 0 }}
             </p>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-indigo-500 flex-1 min-w-[160px]">
             <p class="text-xs text-gray-500">ASSIGNED</p>
-            <p class="text-2xl font-semibold text-indigo-500">
+            <p class="text-2xl font-semibold text-indigo-500" data-poll-key="assigned">
                 {{ $metrics['assigned'] ?? 0 }}
             </p>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-blue-500 flex-1 min-w-[160px]">
             <p class="text-xs text-gray-500">IN PROGRESS</p>
-            <p class="text-2xl font-semibold text-blue-500">
+            <p class="text-2xl font-semibold text-blue-500" data-poll-key="in_progress">
                 {{ $metrics['in_progress'] ?? 0 }}
             </p>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-500 flex-1 min-w-[160px]">
             <p class="text-xs text-gray-500">BREACHED SLA</p>
-            <p class="text-2xl font-semibold text-red-500">
+            <p class="text-2xl font-semibold text-red-500" data-poll-key="breached">
                 {{ $metrics['breached'] ?? 0 }}
             </p>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-green-500 flex-1 min-w-[160px]">
             <p class="text-xs text-gray-500">RESOLVED TODAY</p>
-            <p class="text-2xl font-semibold text-green-500">
+            <p class="text-2xl font-semibold text-green-500" data-poll-key="resolved_today">
                 {{ $metrics['resolved_today'] ?? 0 }}
             </p>
         </div>
@@ -59,6 +59,9 @@
             </p>
         @endif
     </div>
+
+    {{-- NOTIFICATIONS --}}
+    @include('partials.notification-card')
 
     {{-- ================= MAIN WORKSPACE ================= --}}
     @php
@@ -180,7 +183,7 @@
 
                                 @forelse($board[$status] ?? [] as $complaint)
 
-                                    <div class="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition">
+                                    <div class="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition" data-complaint-id="{{ $complaint->id }}" data-complaint-status="{{ $complaint->status }}">
 
                                         <div class="text-xs text-gray-400 flex justify-between">
                                             <span class="text-sm">
@@ -321,7 +324,7 @@
                                     <td class="px-6 py-4">{{ $ticket->complaint_reason }}</td>
                                     <td class="px-6 py-4">{{ $ticket->user->name }}</td>
                                     <td class="px-6 py-4">
-                                        <span class="px-3 py-1 rounded-full text-xs font-medium {{ $color }}">
+                                        <span class="px-3 py-1 rounded-full text-xs font-medium {{ $color }}" data-complaint-id="{{ $ticket->id }}" data-complaint-status="{{ $ticket->status }}">
                                             {{ str_replace('_',' ', $ticket->status) }}
                                         </span>
                                     </td>
@@ -353,8 +356,48 @@
         </div>
     </div>
 
-
         </div>
     </div>
 
 </x-app-layout>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    async function pollSupervisorDashboard() {
+        try {
+            const resp = await fetch('/api/poll/supervisor-dashboard');
+            if (!resp.ok) return;
+            const data = await resp.json();
+
+            // Update metric cards
+            document.querySelectorAll('[data-poll-key]').forEach(el => {
+                const key = el.dataset.pollKey;
+                if (data[key] !== undefined && el.textContent.trim() !== String(data[key])) {
+                    el.textContent = data[key];
+                    el.style.transition = 'color .3s';
+                    const origColor = el.style.color;
+                    el.style.color = '#4f46e5';
+                    setTimeout(() => el.style.color = origColor, 800);
+                }
+            });
+
+            // Update complaint statuses — reload if any status changed
+            if (data.complaints) {
+                let needsReload = false;
+                data.complaints.forEach(c => {
+                    document.querySelectorAll(`[data-complaint-id="${c.id}"]`).forEach(el => {
+                        const oldStatus = el.dataset.complaintStatus;
+                        if (oldStatus && oldStatus !== c.status) {
+                            needsReload = true;
+                        }
+                    });
+                });
+                if (needsReload) {
+                    location.reload();
+                }
+            }
+        } catch (e) {}
+    }
+    setInterval(pollSupervisorDashboard, 10000);
+});
+</script>

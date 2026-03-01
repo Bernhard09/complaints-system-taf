@@ -531,3 +531,25 @@
 </div>
 
 </x-app-layout>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const complaintId = {{ $complaint->id }};
+    let currentStatus = '{{ $complaint->status }}';
+
+    async function pollStatus() {
+        try {
+            const resp = await fetch(`/api/poll/complaint/${complaintId}/status`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (data.status && data.status !== currentStatus) {
+                currentStatus = data.status;
+                window.location.reload();
+            }
+        } catch (e) {}
+    }
+    // Poll immediately, then every 5 seconds
+    pollStatus();
+    setInterval(pollStatus, 5000);
+});
+</script>

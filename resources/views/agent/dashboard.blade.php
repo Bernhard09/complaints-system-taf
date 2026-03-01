@@ -12,10 +12,10 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 @php
                     $overviewCards = [
-                        ['label'=>'Active','value'=>$metrics['active'],'color'=>'indigo'],
-                        ['label'=>'Waiting User','value'=>$metrics['waiting'],'color'=>'amber'],
-                        ['label'=>'Breached SLA','value'=>$metrics['breached'],'color'=>'red'],
-                        ['label'=>'Resolved Today','value'=>$metrics['resolved_today'],'color'=>'green'],
+                        ['label'=>'Active','value'=>$metrics['active'],'color'=>'indigo','key'=>'active'],
+                        ['label'=>'Waiting User','value'=>$metrics['waiting'],'color'=>'amber','key'=>'waiting'],
+                        ['label'=>'Breached SLA','value'=>$metrics['breached'],'color'=>'red','key'=>'breached'],
+                        ['label'=>'Resolved Today','value'=>$metrics['resolved_today'],'color'=>'green','key'=>'resolved_today'],
                     ];
                 @endphp
 
@@ -24,7 +24,7 @@
                         <p class="text-xs text-gray-400 uppercase tracking-wide">
                             {{ $card['label'] }}
                         </p>
-                        <p class="text-3xl font-bold mt-2 text-{{ $card['color'] }}-600">
+                        <p class="text-3xl font-bold mt-2 text-{{ $card['color'] }}-600" data-poll-key="{{ $card['key'] }}">
                             {{ $card['value'] }}
                         </p>
                     </div>
@@ -63,6 +63,8 @@
                 </div>
             </div>
 
+            {{-- NOTIFICATIONS --}}
+            @include('partials.notification-card')
 
 
             {{-- ================= UNIFIED BOARD CARD ================= --}}
@@ -192,7 +194,7 @@
 
                                         @foreach($board[$status] ?? [] as $ticket)
 
-                                            <div class="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition">
+                                            <div class="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition" data-complaint-id="{{ $ticket->id }}" data-complaint-status="{{ $ticket->status }}">
 
                                                 <div class="text-xs text-gray-400 flex justify-between">
                                                     <span>#{{ $ticket->id }}</span>
@@ -322,7 +324,7 @@
                                             <td class="px-6 py-4">{{ $ticket->complaint_reason }}</td>
                                             <td class="px-6 py-4">{{ $ticket->user->name }}</td>
                                             <td class="px-6 py-4">
-                                                <span class="px-3 py-1 rounded-full text-xs font-medium {{ $color }}">
+                                                <span class="px-3 py-1 rounded-full text-xs font-medium {{ $color }}" data-complaint-id="{{ $ticket->id }}" data-complaint-status="{{ $ticket->status }}">
                                                     {{ str_replace('_',' ', $ticket->status) }}
                                                 </span>
                                             </td>
@@ -353,4 +355,55 @@
 
         </div>
     </div>
+
 </x-app-layout>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusColors = {
+        'SUBMITTED':            { bg: '#f3f4f6', text: '#4b5563' },
+        'ASSIGNED':             { bg: '#e0e7ff', text: '#4338ca' },
+        'IN_PROGRESS':          { bg: '#dbeafe', text: '#1d4ed8' },
+        'WAITING_USER':         { bg: '#fef3c7', text: '#b45309' },
+        'WAITING_CONFIRMATION': { bg: '#f3e8ff', text: '#7c3aed' },
+        'RESOLVED':             { bg: '#d1fae5', text: '#065f46' },
+    };
+
+    async function pollAgentDashboard() {
+        try {
+            const resp = await fetch('/api/poll/agent-dashboard');
+            if (!resp.ok) return;
+            const data = await resp.json();
+
+            // Update metric cards
+            document.querySelectorAll('[data-poll-key]').forEach(el => {
+                const key = el.dataset.pollKey;
+                if (data[key] !== undefined && el.textContent.trim() !== String(data[key])) {
+                    el.textContent = data[key];
+                    el.style.transition = 'color .3s';
+                    const origColor = el.style.color;
+                    el.style.color = '#4f46e5';
+                    setTimeout(() => el.style.color = origColor, 800);
+                }
+            });
+
+            // Update complaint statuses
+            if (data.complaints) {
+                let needsReload = false;
+                data.complaints.forEach(c => {
+                    document.querySelectorAll(`[data-complaint-id="${c.id}"]`).forEach(el => {
+                        const oldStatus = el.dataset.complaintStatus;
+                        if (oldStatus && oldStatus !== c.status) {
+                            needsReload = true;
+                        }
+                    });
+                });
+                if (needsReload) {
+                    location.reload();
+                }
+            }
+        } catch (e) {}
+    }
+    setInterval(pollAgentDashboard, 10000);
+});
+</script>

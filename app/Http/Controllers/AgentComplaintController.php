@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Complaint;
 use Illuminate\Http\Request;
+use App\Services\NotificationService;
 
 class AgentComplaintController extends Controller
 {
@@ -242,6 +243,14 @@ class AgentComplaintController extends Controller
             'status' => 'WAITING_USER',
         ]);
 
+        // Notify user
+        NotificationService::send(
+            $complaint->user_id, 'warning',
+            'Response Needed',
+            "Agent is waiting for your response on complaint #{$complaint->id}.",
+            route('complaints.show', $complaint)
+        );
+
         return back()->with('success', 'Waiting for user response');
     }
 
@@ -260,6 +269,14 @@ class AgentComplaintController extends Controller
             'status' => 'WAITING_CONFIRMATION',
             'confirmation_requested_at' => now(),
         ]);
+
+        // Notify user
+        NotificationService::send(
+            $complaint->user_id, 'info',
+            'Resolution Confirmation Requested',
+            "Agent requested confirmation that complaint #{$complaint->id} is resolved.",
+            route('complaints.show', $complaint)
+        );
 
         return back()->with('success', 'Waiting for user confirmation');
     }
@@ -330,6 +347,24 @@ class AgentComplaintController extends Controller
             'note' => "Reassign confirmed by {$user->name}. Transferred to Agent ID {$assignment->to_agent_id}.",
         ]);
 
+        // Notify new agent
+        NotificationService::send(
+            $assignment->to_agent_id, 'info',
+            'New Complaint Assigned',
+            "Complaint #{$complaint->id} has been reassigned to you.",
+            route('complaints.show', $complaint)
+        );
+
+        // Notify supervisor
+        if ($assignment->assigned_by) {
+            NotificationService::send(
+                $assignment->assigned_by, 'success',
+                'Reassign Confirmed',
+                "Agent {$user->name} confirmed reassignment of complaint #{$complaint->id}.",
+                route('supervisor.complaints.show', $complaint)
+            );
+        }
+
         return redirect()->route('agent.dashboard')->with('success', 'Reassign confirmed. Complaint transferred.');
     }
 
@@ -368,6 +403,16 @@ class AgentComplaintController extends Controller
             'user_id' => $user->id,
             'note' => "Reassign rejected by {$user->name}. Reason: {$request->rejection_reason}",
         ]);
+
+        // Notify supervisor
+        if ($assignment->assigned_by) {
+            NotificationService::send(
+                $assignment->assigned_by, 'error',
+                'Reassign Rejected',
+                "Agent {$user->name} rejected reassignment of complaint #{$complaint->id}. Reason: {$request->rejection_reason}",
+                route('supervisor.complaints.show', $complaint)
+            );
+        }
 
         return back()->with('success', 'Reassign rejected. Complaint remains with you.');
     }

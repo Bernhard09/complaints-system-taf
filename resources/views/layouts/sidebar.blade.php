@@ -70,6 +70,27 @@
                     </a>
                 </div>
 
+                {{-- INBOX --}}
+                <div>
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                       x-show="!collapsed">
+                        Communications
+                    </p>
+
+                    <a href="{{ route('notifications.inbox') }}"
+                       class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
+
+                        <x-heroicon-o-bell class="w-5 h-5" />
+                        <span x-show="!collapsed">Inbox</span>
+                        @php $agentUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
+                        @if($agentUnread > 0)
+                            <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
+                                {{ $agentUnread > 9 ? '9+' : $agentUnread }}
+                            </span>
+                        @endif
+                    </a>
+                </div>
+
             @endif
 
             {{-- =========== SUPERVISOR SIDEBAR =========== --}}
@@ -116,6 +137,27 @@
                     </a>
                 </div>
 
+                {{-- INBOX --}}
+                <div>
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                       x-show="!collapsed">
+                        Communications
+                    </p>
+
+                    <a href="{{ route('notifications.inbox') }}"
+                       class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
+
+                        <x-heroicon-o-bell class="w-5 h-5" />
+                        <span x-show="!collapsed">Inbox</span>
+                        @php $supUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
+                        @if($supUnread > 0)
+                            <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
+                                {{ $supUnread > 9 ? '9+' : $supUnread }}
+                            </span>
+                        @endif
+                    </a>
+                </div>
+
             @endif
 
             {{-- =========== USER SIDEBAR =========== --}}
@@ -145,6 +187,27 @@
                         </a>
 
                     </div>
+                </div>
+
+                {{-- INBOX --}}
+                <div>
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                       x-show="!collapsed">
+                        Communications
+                    </p>
+
+                    <a href="{{ route('notifications.inbox') }}"
+                       class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
+
+                        <x-heroicon-o-bell class="w-5 h-5" />
+                        <span x-show="!collapsed">Inbox</span>
+                        @php $userUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
+                        @if($userUnread > 0)
+                            <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
+                                {{ $userUnread > 9 ? '9+' : $userUnread }}
+                            </span>
+                        @endif
+                    </a>
                 </div>
 
             @endif

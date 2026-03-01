@@ -293,7 +293,9 @@
 
                             <div>
                                 <p class="text-gray-400 text-xs uppercase">Status</p>
-                                <x-ui.status-badge :status="$complaint->status" />
+                                <span id="complaint-status-badge" data-current-status="{{ $complaint->status }}">
+                                    <x-ui.status-badge :status="$complaint->status" />
+                                </span>
                             </div>
 
                             <div>
@@ -521,10 +523,156 @@
         if (chatBox) {
             chatBox.scrollTop = chatBox.scrollHeight;
         }
+
+        // AJAX Chat Polling
+        const complaintId = {{ $complaint->id }};
+        const currentUserId = {{ auth()->id() }};
+        let lastMsgId = 0;
+
+        // Find the highest existing message ID from rendered messages
+        const existingBubbles = chatBox ? chatBox.querySelectorAll('[data-msg-id]') : [];
+        existingBubbles.forEach(el => {
+            const id = parseInt(el.dataset.msgId);
+            if (id > lastMsgId) lastMsgId = id;
+        });
+
+        // If no data-msg-id elements exist, get count of messages
+        @if($complaint->messages->count() > 0)
+            if (lastMsgId === 0) lastMsgId = {{ $complaint->messages->last()->id ?? 0 }};
+        @endif
+
+        async function pollMessages() {
+            try {
+                const resp = await fetch(`/complaints/${complaintId}/messages/poll?after_id=${lastMsgId}`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+
+                if (data.messages.length > 0) {
+                    const wasAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 100;
+
+                    data.messages.forEach(msg => {
+                        if (msg.id <= lastMsgId) return;
+
+                        if (msg.is_system) {
+                            // System message
+                            const div = document.createElement('div');
+                            div.className = 'flex justify-center';
+                            div.dataset.msgId = msg.id;
+                            div.innerHTML = `<div class="bg-gray-200 text-gray-600 px-4 py-2 rounded-full text-xs max-w-[80%] text-center">${escapeHtml(msg.message)}</div>`;
+                            chatBox.appendChild(div);
+                        } else {
+                            const isMine = msg.sender_id === currentUserId;
+                            const isUserMsg = msg.sender_role === 'USER';
+
+                            let bubbleColor;
+                            if (isUserMsg) {
+                                bubbleColor = isMine ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-900';
+                            } else {
+                                bubbleColor = isMine ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-900';
+                            }
+
+                            const wrapper = document.createElement('div');
+                            wrapper.className = `flex ${isMine ? 'justify-end' : 'justify-start'}`;
+                            wrapper.dataset.msgId = msg.id;
+
+                            let attachmentHtml = '';
+                            if (msg.attachment_path) {
+                                const ext = (msg.attachment_name || '').split('.').pop().toLowerCase();
+                                const isImage = ['jpg','jpeg','png','webp'].includes(ext);
+                                if (isImage) {
+                                    attachmentHtml = `<div class="mt-2"><a href="${msg.attachment_path}" target="_blank"><img src="${msg.attachment_path}" alt="${escapeHtml(msg.attachment_name)}" class="rounded-lg max-h-48 cursor-pointer hover:opacity-90 transition" /></a></div>`;
+                                } else {
+                                    attachmentHtml = `<div class="mt-2"><a href="${msg.attachment_path}" target="_blank" class="inline-flex items-center gap-1 text-xs underline opacity-80 hover:opacity-100">📎 ${escapeHtml(msg.attachment_name)}</a></div>`;
+                                }
+                            }
+
+                            const roleLabel = msg.sender_role === 'AGENT' ? '<span class="opacity-60">· Agent</span>' : '';
+
+                            wrapper.innerHTML = `
+                                <div class="max-w-[70%] px-4 py-3 rounded-2xl ${bubbleColor}">
+                                    <p class="text-[10px] font-semibold mb-1 opacity-80">${escapeHtml(msg.sender_name)} ${roleLabel}</p>
+                                    ${msg.message ? `<p class="text-sm whitespace-pre-wrap break-words">${escapeHtml(msg.message)}</p>` : ''}
+                                    ${attachmentHtml}
+                                    <p class="text-[10px] mt-2 opacity-70">${msg.time}</p>
+                                </div>
+                            `;
+
+                            chatBox.appendChild(wrapper);
+                        }
+
+                        lastMsgId = msg.id;
+                    });
+
+                    // Auto-scroll if user was near bottom
+                    if (wasAtBottom) {
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    }
+                }
+            } catch (e) {
+                // Silently fail
+            }
+        }
+
+        // Poll every 5 seconds
+        setInterval(pollMessages, 5000);
+
+        // Complaint status polling — update badge inline every 5s
+        const statusBadge = document.getElementById('complaint-status-badge');
+        if (statusBadge) {
+            let currentStatus = statusBadge.dataset.currentStatus;
+
+            const statusColors = {
+                'IN_PROGRESS':   'bg-indigo-100 text-indigo-700',
+                'WAITING_USER':  'bg-amber-100 text-amber-700',
+                'WAITING_CONFIRMATION': 'bg-purple-100 text-purple-700',
+                'RESOLVED':      'bg-green-100 text-green-700',
+                'ASSIGNED':      'bg-gray-100 text-gray-600',
+                'SUBMITTED':     'bg-gray-100 text-gray-600',
+                'PENDING_REASSIGN': 'bg-orange-100 text-orange-700',
+                'CLOSED':        'bg-green-100 text-green-700',
+                'CANCELLED':     'bg-red-100 text-red-700',
+            };
+
+            async function pollStatus() {
+                try {
+                    const resp = await fetch(`/api/poll/complaint/${complaintId}/status`);
+                    if (!resp.ok) return;
+                    const data = await resp.json();
+                    if (data.status && data.status !== currentStatus) {
+                        // Update badge inline
+                        const badgeSpan = statusBadge.querySelector('span');
+                        if (badgeSpan) {
+                            badgeSpan.className = 'px-3 py-1 rounded-full text-xs font-medium ' + (statusColors[data.status] || 'bg-gray-100 text-gray-600');
+                            badgeSpan.textContent = data.status.replace(/_/g, ' ');
+                        }
+                        statusBadge.dataset.currentStatus = data.status;
+
+                        // Flash the badge
+                        statusBadge.style.transition = 'transform .3s';
+                        statusBadge.style.transform = 'scale(1.15)';
+                        setTimeout(() => statusBadge.style.transform = 'scale(1)', 500);
+
+                        // If status changes to a terminal state or from a terminal state,
+                        // reload to update all action buttons/forms
+                        const terminalStates = ['RESOLVED', 'CLOSED', 'CANCELLED'];
+                        if (terminalStates.includes(data.status) || terminalStates.includes(currentStatus)) {
+                            setTimeout(() => window.location.reload(), 1000);
+                        }
+
+                        currentStatus = data.status;
+                    }
+                } catch (e) {}
+            }
+            // Poll immediately, then every 5 seconds
+            pollStatus();
+            setInterval(pollStatus, 5000);
+        }
     });
 
-    // Auto refresh every 15 seconds
-    setInterval(function () {
-        window.location.reload();
-    }, 15000);
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 </script>
