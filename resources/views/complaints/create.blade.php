@@ -54,6 +54,7 @@
                                     class="w-full rounded-xl border-gray-300 shadow-sm
                                             focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                                             transition duration-200"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                     required>
                             @error('contract_number')
                                 <p class="text-sm text-red-500 mt-1">
@@ -107,7 +108,7 @@
 
                         <div class="space-y-3">
                             <label class="text-sm font-medium text-gray-700">
-                                Attachments (max 10 files)
+                                Attachments (max 10 files, total up to 5MB)
                             </label>
 
                             <div id="dropZone"
@@ -127,7 +128,7 @@
                                 </p>
 
                                 <p class="text-xs text-gray-400 mt-1">
-                                    or click to upload
+                                    or click to upload (Max total 5MB)
                                 </p>
                             </div>
 
@@ -137,6 +138,13 @@
                                 •
                                 <span id="file-size">0 KB</span>
                             </div>
+
+                            @error('attachments')
+                                <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                            @enderror
+                            @error('attachments.*')
+                                <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         {{-- Button --}}
@@ -250,8 +258,9 @@ function handleFiles(files) {
             continue;
         }
 
-        if (file.size > 5 * 1024 * 1024) {
-            alert(`${file.name} exceeds 5MB limit.`);
+        const currentTotalSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
+        if (currentTotalSize + file.size > 5 * 1024 * 1024) {
+            alert(`Adding ${file.name} would exceed the 5MB total limit.`);
             continue;
         }
 

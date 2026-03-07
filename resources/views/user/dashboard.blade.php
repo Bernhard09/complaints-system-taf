@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        User Dashboard
+        Dashboard
     </x-slot>
 
     <div class="mx-auto w-full max-w-screen-2xl px-8 py-8 space-y-10">

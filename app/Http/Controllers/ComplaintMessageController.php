@@ -28,7 +28,9 @@ class ComplaintMessageController extends Controller
 
         $validated = $request->validate([
             'message' => ['required_without:attachment', 'nullable', 'string'],
-            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], [
+            'attachment.max' => 'The attachment must not exceed 5MB.',
         ]);
 
         $data = [
@@ -85,7 +87,9 @@ class ComplaintMessageController extends Controller
 
         $validated = $request->validate([
             'message' => ['required_without:attachment', 'nullable', 'string'],
-            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], [
+            'attachment.max' => 'The attachment must not exceed 5MB.',
         ]);
 
         $data = [

@@ -1,5 +1,6 @@
-<table class="w-full text-sm">
-    <thead>
+<div class="overflow-x-auto">
+    <table class="w-full text-sm whitespace-nowrap">
+        <thead>
         <tr>
             <th>ID</th>
             <th>Contract</th>
@@ -30,3 +31,4 @@
         @endforeach
     </tbody>
 </table>
+</div>

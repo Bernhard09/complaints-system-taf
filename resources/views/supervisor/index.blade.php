@@ -16,8 +16,8 @@
                 {{ session('success') }}
             </div>
         @endif
-
-        <table class="w-full border-collapse border">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse border whitespace-nowrap">
             <thead class="bg-gray-100">
                 <tr>
                     <th class="border p-2">ID</th>
@@ -131,5 +131,6 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
 </x-app-layout>

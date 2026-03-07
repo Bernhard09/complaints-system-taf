@@ -28,12 +28,26 @@ class ComplaintController extends Controller
             'description' => ['required', 'string', 'min:10', 'max:2000'],
 
             // Attachment validation
-            'attachments' => ['nullable', 'array', 'max:10'],
+            'attachments' => [
+                'nullable',
+                'array',
+                'max:10',
+                function ($attribute, $value, $fail) {
+                    $totalSize = array_reduce($value, function ($carry, $file) {
+                        return $carry + $file->getSize();
+                    }, 0);
+                    
+                    if ($totalSize > 5120 * 1024) { // 5MB in bytes
+                        $fail('The total size of all attachments must not exceed 5MB.');
+                    }
+                },
+            ],
             'attachments.*' => [
                 'file',
                 'mimes:jpg,jpeg,png,webp,pdf',
-                'max:10240', // 10MB per file
             ],
+        ], [
+            // removed per-file size custom message
         ]);
 
         // Duplicate active complaint check

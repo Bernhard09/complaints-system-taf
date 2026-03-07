@@ -1,15 +1,15 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="text-lg font-semibold text-gray-800">
-            Agent Workspace
+            Dashboard
         </h2>
     </x-slot>
 
-    <div class="bg-gray-100 min-h-screen py-10">
-        <div class="max-w-screen-2xl mx-auto px-10 space-y-8">
+    <div class="bg-gray-100 min-h-screen py-6 sm:py-10">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
 
             {{-- ================= OVERVIEW ================= --}}
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 @php
                     $overviewCards = [
                         ['label'=>__('Active'),'value'=>$metrics['active'],'color'=>'indigo','key'=>'active'],
@@ -179,7 +179,7 @@
 
                             @foreach($columns as $status=>$label)
 
-                                <div class="w-80 bg-gray-50 rounded-xl p-4 border">
+                                <div class="w-80 flex-shrink-0 bg-gray-50 rounded-xl p-4 border">
 
                                     <div class="flex justify-between mb-4">
                                         <h3 class="text-sm font-semibold text-gray-700">
@@ -196,17 +196,21 @@
 
                                             <div class="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition" data-complaint-id="{{ $ticket->id }}" data-complaint-status="{{ $ticket->status }}">
 
-                                                <div class="text-xs text-gray-400 flex justify-between">
+                                                <div class="text-xs text-gray-400 flex justify-between mb-1">
                                                     <span>#{{ $ticket->id }}</span>
 
-                                                    @if($ticket->sla_status==='BREACHED')
-                                                        <span class="text-red-600 font-semibold">
+                                                    @if($ticket->sla_status === 'BREACHED' && !in_array($ticket->status, ['RESOLVED', 'CLOSED']))
+                                                        <span class="text-red-600 font-semibold bg-red-100 px-1.5 py-0.5 rounded text-[10px]">
                                                             BREACHED
                                                         </span>
                                                     @endif
                                                 </div>
 
-                                                <div class="mt-2 font-medium text-sm">
+                                                <div class="text-xs font-semibold text-gray-600">
+                                                    {{ $ticket->contract_number ?? '-' }}
+                                                </div>
+
+                                                <div class="mt-2 font-medium text-sm text-gray-900">
                                                     {{ $ticket->complaint_reason }}
                                                 </div>
 
@@ -214,8 +218,12 @@
                                                     {{ $ticket->user->name }}
                                                 </div>
 
-                                                <div class="mt-3 text-xs text-indigo-600">
-                                                    <a href="{{ route('complaints.show',$ticket) }}">
+                                                <div class="flex justify-between items-center mt-3 text-xs">
+                                                    <span class="text-gray-400">
+                                                        {{ $ticket->created_at->diffForHumans() }}
+                                                    </span>
+
+                                                    <a href="{{ route('complaints.show', $ticket) }}" class="text-indigo-600 hover:underline">
                                                         View →
                                                     </a>
                                                 </div>
@@ -292,8 +300,8 @@
 
 
                         {{-- TABLE --}}
-                        <div class="overflow-hidden rounded-xl border">
-                            <table class="w-full text-sm">
+                        <div class="overflow-x-auto rounded-xl border">
+                            <table class="w-full text-sm whitespace-nowrap">
                                 <thead class="bg-gray-50 text-gray-600">
                                     <tr>
                                         <th class="px-6 py-3 text-left">ID</th>

@@ -336,6 +336,7 @@ class AgentComplaintController extends Controller
         \App\Models\ComplaintMessage::create([
             'complaint_id' => $complaint->id,
             'sender_id' => $user->id,
+            'sender_role' => $user->role,
             'message' => "⟳ This complaint has been reassigned from {$user->name} to a new agent. Reason: {$assignment->reason}",
             'is_system' => true,
         ]);
@@ -343,7 +344,8 @@ class AgentComplaintController extends Controller
         // Internal note
         \App\Models\ComplaintInternalNote::create([
             'complaint_id' => $complaint->id,
-            'user_id' => $user->id,
+            'author_id' => $user->id,
+            'author_role' => $user->role,
             'note' => "Reassign confirmed by {$user->name}. Transferred to Agent ID {$assignment->to_agent_id}.",
         ]);
 
@@ -400,7 +402,8 @@ class AgentComplaintController extends Controller
         // Internal note
         \App\Models\ComplaintInternalNote::create([
             'complaint_id' => $complaint->id,
-            'user_id' => $user->id,
+            'author_id' => $user->id,
+            'author_role' => $user->role,
             'note' => "Reassign rejected by {$user->name}. Reason: {$request->rejection_reason}",
         ]);
 

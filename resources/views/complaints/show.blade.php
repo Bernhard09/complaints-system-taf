@@ -246,28 +246,34 @@
                                 @if($complaint->sla_resolution_deadline)
                                     <div>
                                         <p class="text-gray-400 text-xs uppercase mb-1">Resolution SLA</p>
-                                        @php
-                                            $resDeadline = $complaint->sla_resolution_deadline;
-                                            $slaStatus = $complaint->sla_status;
-                                            $slaColor = match($slaStatus) {
-                                                'BREACHED' => 'text-red-600',
-                                                'CRITICAL' => 'text-orange-600',
-                                                'WARNING'  => 'text-yellow-600',
-                                                default    => 'text-gray-700',
-                                            };
-                                            $badgeClass = match($slaStatus) {
-                                                'BREACHED' => 'bg-red-100 text-red-600',
-                                                'CRITICAL' => 'bg-orange-100 text-orange-600',
-                                                'WARNING'  => 'bg-yellow-100 text-yellow-600',
-                                                default    => 'bg-green-100 text-green-600',
-                                            };
-                                        @endphp
-                                        <p class="font-semibold {{ $slaColor }}">
-                                            {{ $resDeadline->format('d M Y H:i') }}
-                                        </p>
-                                        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium {{ $badgeClass }}">
-                                            {{ $slaStatus }}
-                                        </span>
+                                        @if(in_array($complaint->status, ['RESOLVED', 'CLOSED']))
+                                            <p class="text-green-600 font-medium">
+                                                ✓ Resolved {{ $complaint->resolved_at ? $complaint->resolved_at->diffForHumans() : '' }}
+                                            </p>
+                                        @else
+                                            @php
+                                                $resDeadline = $complaint->sla_resolution_deadline;
+                                                $slaStatus = $complaint->sla_status;
+                                                $slaColor = match($slaStatus) {
+                                                    'BREACHED' => 'text-red-600',
+                                                    'CRITICAL' => 'text-orange-600',
+                                                    'WARNING'  => 'text-yellow-600',
+                                                    default    => 'text-gray-700',
+                                                };
+                                                $badgeClass = match($slaStatus) {
+                                                    'BREACHED' => 'bg-red-100 text-red-600',
+                                                    'CRITICAL' => 'bg-orange-100 text-orange-600',
+                                                    'WARNING'  => 'bg-yellow-100 text-yellow-600',
+                                                    default    => 'bg-green-100 text-green-600',
+                                                };
+                                            @endphp
+                                            <p class="font-semibold {{ $slaColor }}">
+                                                {{ $resDeadline->format('d M Y H:i') }}
+                                            </p>
+                                            <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium {{ $badgeClass }}">
+                                                {{ $slaStatus }}
+                                            </span>
+                                        @endif
                                     </div>
                                 @endif
 
@@ -373,57 +379,162 @@
 
                         <div class="space-y-3 text-sm">
 
-                            <div>
-                                Complaint submitted
-                                <p class="text-xs text-gray-400">
-                                    {{ $complaint->created_at->diffForHumans() }}
-                                </p>
-                            </div>
+                            @php
+                                $activities = collect();
 
-                            @if($complaint->assigned_at)
-                                <div>
-                                    Assigned to agent
-                                    <p class="text-xs text-gray-400">
-                                        {{ $complaint->assigned_at->diffForHumans() }}
-                                    </p>
-                                </div>
-                            @endif
+                                // Submitted
+                                $activities->push((object)[
+                                    'time' => $complaint->created_at,
+                                    'type' => 'submitted',
+                                ]);
 
-                            @foreach($complaint->assignments()->with(['fromAgent', 'toAgent'])->latest()->get() as $assign)
-                                <div>
-                                    @if($assign->status === 'CONFIRMED')
-                                        <span class="text-green-600">✓</span>
-                                        Reassigned from {{ $assign->fromAgent?->name }} → {{ $assign->toAgent?->name }}
-                                    @elseif($assign->status === 'REJECTED')
-                                        <span class="text-red-600">✕</span>
-                                        Reassign rejected by {{ $assign->fromAgent?->name }}
-                                    @else
-                                        <span class="text-amber-600">⏳</span>
-                                        Reassign pending ({{ $assign->fromAgent?->name }} → {{ $assign->toAgent?->name }})
-                                    @endif
-                                    <p class="text-xs text-gray-400">
-                                        {{ $assign->created_at->diffForHumans() }}
-                                    </p>
-                                </div>
+                                // Assigned
+                                if($complaint->assigned_at) {
+                                    $activities->push((object)[
+                                        'time' => $complaint->assigned_at,
+                                        'type' => 'assigned',
+                                    ]);
+                                }
+
+                                // Reassignments
+                                foreach($complaint->assignments()->with(['fromAgent', 'toAgent', 'toDepartment', 'assignedByUser'])->get() as $assign) {
+                                    $activities->push((object)[
+                                        'time' => $assign->created_at,
+                                        'type' => 'reassign',
+                                        'assign' => $assign
+                                    ]);
+                                }
+
+                                // First Response
+                                if($complaint->first_response_at) {
+                                    $activities->push((object)[
+                                        'time' => $complaint->first_response_at,
+                                        'type' => 'first_response',
+                                    ]);
+                                }
+
+                                // Resolved
+                                if($complaint->resolved_at) {
+                                    $activities->push((object)[
+                                        'time' => $complaint->resolved_at,
+                                        'type' => 'resolved',
+                                    ]);
+                                }
+
+                                // Response SLA Breached
+                                if($complaint->sla_response_deadline && 
+                                   $complaint->sla_response_deadline->isPast() && 
+                                   (!$complaint->first_response_at || $complaint->first_response_at->greaterThan($complaint->sla_response_deadline))) {
+                                    $activities->push((object)[
+                                        'time' => $complaint->sla_response_deadline,
+                                        'type' => 'response_breached',
+                                    ]);
+                                }
+
+                                // Resolution SLA Breached
+                                if($complaint->sla_resolution_deadline && 
+                                   $complaint->sla_resolution_deadline->isPast() && 
+                                   (!$complaint->resolved_at || $complaint->resolved_at->greaterThan($complaint->sla_resolution_deadline))) {
+                                    $activities->push((object)[
+                                        'time' => $complaint->sla_resolution_deadline,
+                                        'type' => 'resolution_breached',
+                                    ]);
+                                }
+
+                                $activities = $activities->sortBy('time')->values();
+                            @endphp
+
+                            @foreach($activities as $act)
+
+                                @if($act->type === 'submitted')
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-gray-400 mt-1.5 shrink-0"></div>
+                                        <div>
+                                            <p>Complaint submitted by <span class="font-medium">{{ $complaint->user->name }}</span></p>
+                                            <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                        </div>
+                                    </div>
+
+                                @elseif($act->type === 'assigned')
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
+                                        <div>
+                                            <p>Assigned to <span class="font-medium">{{ $complaint->agent?->name ?? 'Agent' }}</span></p>
+                                            <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                        </div>
+                                    </div>
+
+                                @elseif($act->type === 'reassign')
+                                    <div class="flex items-start gap-2">
+                                        @if($act->assign->status === 'CONFIRMED')
+                                            <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                                        @elseif($act->assign->status === 'REJECTED')
+                                            <div class="w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0"></div>
+                                        @else
+                                            <div class="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0"></div>
+                                        @endif
+                                        <div>
+                                            <p>
+                                                Reassign
+                                                <span class="font-medium">{{ $act->assign->fromAgent?->name }}</span>
+                                                → <span class="font-medium">{{ $act->assign->toAgent?->name }}</span>
+                                                ({{ $act->assign->toDepartment?->name ?? 'Same dept' }})
+                                            </p>
+                                            <p class="text-xs text-gray-500">By: {{ $act->assign->assignedByUser?->name }}</p>
+                                            <p class="text-xs text-gray-500">Reason: {{ $act->assign->reason }}</p>
+
+                                            @if($act->assign->status === 'CONFIRMED')
+                                                <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-600">Confirmed</span>
+                                            @elseif($act->assign->status === 'REJECTED')
+                                                <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-600">Rejected</span>
+                                                <p class="text-xs text-red-500 mt-1">{{ $act->assign->rejection_reason }}</p>
+                                            @else
+                                                <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-600">Pending</span>
+                                            @endif
+
+                                            <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                        </div>
+                                    </div>
+
+                                @elseif($act->type === 'first_response')
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                                        <div>
+                                            <p>Agent first response</p>
+                                            <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                @elseif($act->type === 'response_breached')
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-red-600 mt-1.5 shrink-0"></div>
+                                        <div>
+                                            <p class="text-red-600 font-medium">Response SLA Breached</p>
+                                            <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                        </div>
+                                    </div>
+
+                                @elseif($act->type === 'resolution_breached')
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-red-600 mt-1.5 shrink-0"></div>
+                                        <div>
+                                            <p class="text-red-600 font-medium">Resolution SLA Breached</p>
+                                            <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                        </div>
+                                    </div>
+
+                                @elseif($act->type === 'resolved')
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-green-600 mt-1.5 shrink-0"></div>
+                                        <div>
+                                            <p>Complaint resolved</p>
+                                            <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                        </div>
+                                    </div>
+
+                                @endif
+
                             @endforeach
-
-                            @if($complaint->first_response_at)
-                                <div>
-                                    Agent first response
-                                    <p class="text-xs text-gray-400">
-                                        {{ $complaint->first_response_at->diffForHumans() }}
-                                    </p>
-                                </div>
-                            @endif
-
-                            @if($complaint->resolved_at)
-                                <div>
-                                    <span class="text-green-600">✓</span> Resolved
-                                    <p class="text-xs text-gray-400">
-                                        {{ $complaint->resolved_at->diffForHumans() }}
-                                    </p>
-                                </div>
-                            @endif
 
                         </div>
                     </x-ui.card>
@@ -643,7 +754,7 @@
         if (statusBadge) {
             let currentStatus = statusBadge.dataset.currentStatus;
 
-            const statusTranslations = @json([
+            const statusTranslations = {{ Js::from([
                 'SUBMITTED' => __('SUBMITTED'),
                 'ASSIGNED' => __('ASSIGNED'),
                 'IN_PROGRESS' => __('IN_PROGRESS'),
@@ -653,7 +764,7 @@
                 'PENDING_REASSIGN' => __('PENDING_REASSIGN'),
                 'CLOSED' => __('CLOSED'),
                 'CANCELLED' => __('CANCELLED'),
-            ]);
+            ]) }};
 
             const statusColors = {
                 'IN_PROGRESS':   'bg-indigo-100 text-indigo-700',

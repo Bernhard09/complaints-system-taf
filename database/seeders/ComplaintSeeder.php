@@ -23,16 +23,16 @@ class ComplaintSeeder extends Seeder
         // ── Supervisor (1 only) ──
         $supervisor = User::firstOrCreate(
             ['email' => 'supervisor@test.com'],
-            ['name' => 'Supervisor', 'password' => Hash::make('password'), 'role' => 'SUPERVISOR']
+            ['name' => 'Supervisor', 'password' => Hash::make('password'), 'phone_number' => '+6281200000000', 'role' => 'SUPERVISOR']
         );
 
         // ── Agents (1 per department) ──
         $agents = [];
         $agentData = [
-            'FINANCE'    => ['name' => 'Agent Finance',    'email' => 'agent.finance@test.com'],
-            'COLLECTION' => ['name' => 'Agent Collection', 'email' => 'agent.collection@test.com'],
-            'LEGAL'      => ['name' => 'Agent Legal',      'email' => 'agent.legal@test.com'],
-            'UMUM'       => ['name' => 'Agent Umum',       'email' => 'agent.umum@test.com'],
+            'FINANCE'    => ['name' => 'Agent Finance',    'email' => 'agent.finance@test.com', 'phone' => '+6281234567890'],
+            'COLLECTION' => ['name' => 'Agent Collection', 'email' => 'agent.collection@test.com', 'phone' => '+6281234567891'],
+            'LEGAL'      => ['name' => 'Agent Legal',      'email' => 'agent.legal@test.com', 'phone' => '+6281234567892'],
+            'UMUM'       => ['name' => 'Agent Umum',       'email' => 'agent.umum@test.com', 'phone' => '+6281234567893'],
         ];
 
         foreach ($agentData as $dept => $data) {
@@ -42,6 +42,7 @@ class ComplaintSeeder extends Seeder
                     'name'          => $data['name'],
                     'password'      => Hash::make('password'),
                     'role'          => 'AGENT',
+                    'phone_number'  => $data['phone'],
                     'department_id' => $departments[$dept]->id,
                 ]
             );
@@ -50,17 +51,17 @@ class ComplaintSeeder extends Seeder
         // ── Users (varied) ──
         $users = [];
         $userData = [
-            ['name' => 'Budi Santoso',   'email' => 'budi@test.com'],
-            ['name' => 'Siti Rahayu',    'email' => 'siti@test.com'],
-            ['name' => 'Ahmad Fauzi',    'email' => 'ahmad@test.com'],
-            ['name' => 'Dewi Lestari',   'email' => 'dewi@test.com'],
-            ['name' => 'Rizky Pratama',  'email' => 'rizky@test.com'],
+            ['name' => 'Budi Santoso',   'email' => 'budi@test.com',   'phone' => '+6282100000001'],
+            ['name' => 'Siti Rahayu',    'email' => 'siti@test.com',   'phone' => '+6282100000002'],
+            ['name' => 'Ahmad Fauzi',    'email' => 'ahmad@test.com',  'phone' => '+6282100000003'],
+            ['name' => 'Dewi Lestari',   'email' => 'dewi@test.com',   'phone' => '+6282100000004'],
+            ['name' => 'Rizky Pratama',  'email' => 'rizky@test.com',  'phone' => '+6282100000005'],
         ];
 
         foreach ($userData as $data) {
             $users[] = User::firstOrCreate(
                 ['email' => $data['email']],
-                ['name' => $data['name'], 'password' => Hash::make('password'), 'role' => 'USER']
+                ['name' => $data['name'], 'password' => Hash::make('password'), 'phone_number' => $data['phone'], 'role' => 'USER']
             );
         }
 

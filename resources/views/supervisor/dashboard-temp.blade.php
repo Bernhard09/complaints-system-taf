@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="text-lg font-semibold text-gray-800">
-            Agent Workspace
+            Dashboard
         </h2>
     </x-slot>
 

@@ -3,35 +3,48 @@
         Complaint History
     </x-slot>
 
-    <div class="bg-gray-100 min-h-screen py-10">
-        <div class="max-w-6xl mx-auto px-6 space-y-6">
+    <div class="bg-gray-100 min-h-screen py-6 sm:py-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
 
             <div class="bg-white rounded-2xl shadow-sm border p-6">
 
-                <form method="GET" class="flex gap-4 mb-6">
-                    <input type="text"
-                           name="search"
-                           placeholder="Search contract or reason..."
-                           value="{{ request('search') }}"
-                           class="border rounded-lg px-3 py-2 text-sm w-64">
+                <form method="GET" class="bg-gray-50 border rounded-xl p-4 mb-6">
+                    <div class="flex flex-col md:flex-row gap-4 md:items-end">
+                        <div class="w-full md:w-64">
+                            <label class="text-xs text-gray-500 block mb-1">Search</label>
+                            <input type="text"
+                                   name="search"
+                                   placeholder="Search contract or reason..."
+                                   value="{{ request('search') }}"
+                                   class="border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-indigo-500">
+                        </div>
 
-                    <input type="date"
-                           name="from"
-                           value="{{ request('from') }}"
-                           class="border rounded-lg px-3 py-2 text-sm">
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">From</label>
+                            <input type="date"
+                                   name="from"
+                                   value="{{ request('from') }}"
+                                   class="border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-indigo-500">
+                        </div>
 
-                    <input type="date"
-                           name="to"
-                           value="{{ request('to') }}"
-                           class="border rounded-lg px-3 py-2 text-sm">
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">To</label>
+                            <input type="date"
+                                   name="to"
+                                   value="{{ request('to') }}"
+                                   class="border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-indigo-500">
+                        </div>
 
-                    <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">
-                        Apply
-                    </button>
+                        <div>
+                            <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm w-full md:w-auto h-[38px]">
+                                Apply
+                            </button>
+                        </div>
+                    </div>
                 </form>
 
-                <div class="overflow-hidden rounded-xl border">
-                    <table class="w-full text-sm">
+                <div class="overflow-x-auto rounded-xl border">
+                    <table class="w-full text-sm whitespace-nowrap">
                         <thead class="bg-gray-50 text-gray-600">
                             <tr>
                                 <th class="px-6 py-3 text-left">ID</th>

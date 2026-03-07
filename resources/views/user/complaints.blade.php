@@ -9,62 +9,62 @@
             {{-- FILTERS --}}
             <x-ui.card>
                 <form method="GET" action="{{ route('user.complaints') }}"
-                      class="flex flex-wrap gap-4 items-end">
+                      class="bg-gray-50 border rounded-xl p-4">
+                    <div class="flex flex-wrap gap-4 items-end">
+                        {{-- Search --}}
+                        <div class="flex-1 min-w-[200px]">
+                            <label class="text-xs text-gray-500">Search</label>
+                            <input type="text"
+                                   name="search"
+                                   value="{{ request('search') }}"
+                                   placeholder="Contract, reason, or description..."
+                                   class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
+                        </div>
 
-                    {{-- Search --}}
-                    <div class="flex-1 min-w-[200px]">
-                        <label class="text-xs text-gray-500">Search</label>
-                        <input type="text"
-                               name="search"
-                               value="{{ request('search') }}"
-                               placeholder="Contract, reason, or description..."
-                               class="w-full mt-1 border rounded-lg px-3 py-2 text-sm" />
+                        {{-- Status --}}
+                        <div class="min-w-[160px]">
+                            <label class="text-xs text-gray-500">Status</label>
+                            <select name="status"
+                                    class="w-full mt-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                <option value="ALL">All Status</option>
+                                @foreach(['SUBMITTED','ASSIGNED','IN_PROGRESS','WAITING_USER','WAITING_CONFIRMATION','RESOLVED','CLOSED'] as $s)
+                                    <option value="{{ $s }}"
+                                        {{ request('status') === $s ? 'selected' : '' }}>
+                                        {{ $s }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- From --}}
+                        <div>
+                            <label class="text-xs text-gray-500">From</label>
+                            <input type="date"
+                                   name="from"
+                                   value="{{ request('from') }}"
+                                   class="mt-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+
+                        {{-- To --}}
+                        <div>
+                            <label class="text-xs text-gray-500">To</label>
+                            <input type="date"
+                                   name="to"
+                                   value="{{ request('to') }}"
+                                   class="mt-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+
+                        <div class="flex gap-2">
+                            <x-ui.button>Filter</x-ui.button>
+
+                            @if(request()->hasAny(['search','status','from','to']))
+                                <a href="{{ route('user.complaints') }}"
+                                   class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 font-semibold border bg-white rounded-lg inline-flex items-center">
+                                    Clear
+                                </a>
+                            @endif
+                        </div>
                     </div>
-
-                    {{-- Status --}}
-                    <div class="min-w-[160px]">
-                        <label class="text-xs text-gray-500">Status</label>
-                        <select name="status"
-                                class="w-full mt-1 border rounded-lg px-3 py-2 text-sm">
-                            <option value="ALL">All Status</option>
-                            @foreach(['SUBMITTED','ASSIGNED','IN_PROGRESS','WAITING_USER','WAITING_CONFIRMATION','RESOLVED','CLOSED'] as $s)
-                                <option value="{{ $s }}"
-                                    {{ request('status') === $s ? 'selected' : '' }}>
-                                    {{ $s }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- From --}}
-                    <div>
-                        <label class="text-xs text-gray-500">From</label>
-                        <input type="date"
-                               name="from"
-                               value="{{ request('from') }}"
-                               class="mt-1 border rounded-lg px-3 py-2 text-sm" />
-                    </div>
-
-                    {{-- To --}}
-                    <div>
-                        <label class="text-xs text-gray-500">To</label>
-                        <input type="date"
-                               name="to"
-                               value="{{ request('to') }}"
-                               class="mt-1 border rounded-lg px-3 py-2 text-sm" />
-                    </div>
-
-                    <div class="flex gap-2">
-                        <x-ui.button>Filter</x-ui.button>
-
-                        @if(request()->hasAny(['search','status','from','to']))
-                            <a href="{{ route('user.complaints') }}"
-                               class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">
-                                Clear
-                            </a>
-                        @endif
-                    </div>
-
                 </form>
             </x-ui.card>
 

@@ -16,6 +16,25 @@
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
+        <!-- Phone Number -->
+        <div class="mt-4">
+            <x-input-label for="phone_number_input" :value="__('Phone Number')" />
+            <div class="flex mt-1 shadow-sm rounded-md">
+                <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-50 border border-e-0 border-gray-300 rounded-s-md">
+                    +62
+                </span>
+                <input type="text" 
+                       id="phone_number_input" 
+                       name="phone_number_input" 
+                       class="rounded-none rounded-e-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 block flex-1 min-w-0 w-full text-sm p-2.5" 
+                       placeholder="812xxxxxx" 
+                       value="{{ old('phone_number_input') }}" 
+                       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                       required>
+            </div>
+            <x-input-error :messages="$errors->get('phone_number')" class="mt-2" />
+        </div>
+
         <!-- Password -->
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />

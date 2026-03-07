@@ -72,52 +72,21 @@
 
                         @foreach($complaint->attachments as $file)
 
-                            <div x-data="{ open: false }">
-
+                            <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="block">
                                 {{-- Thumbnail --}}
                                 @if(Str::contains($file->mime_type, 'image'))
                                     <img
                                         src="{{ asset('storage/' . $file->file_path) }}"
-                                        class="rounded-lg cursor-pointer border"
-                                        @click="open = true"
+                                        class="rounded-lg cursor-pointer border hover:opacity-90 transition"
                                     >
                                 @else
                                     <div
-                                        class="p-6 bg-gray-100 rounded-lg text-center cursor-pointer"
-                                        @click="open = true"
+                                        class="p-6 bg-gray-100 rounded-lg text-center hover:bg-gray-200 transition"
                                     >
                                         📄 PDF File
                                     </div>
                                 @endif
-
-                                {{-- Preview Modal --}}
-                                <div
-                                    x-show="open"
-                                    x-transition
-                                    class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-                                    @click="open = false"
-                                >
-                                    <div
-                                        @click.stop
-                                        class="bg-white p-4 rounded-xl max-w-3xl w-full"
-                                    >
-
-                                        @if(Str::contains($file->mime_type, 'image'))
-                                            <img
-                                                src="{{ asset('storage/' . $file->file_path) }}"
-                                                class="w-full rounded"
-                                            >
-                                        @else
-                                            <iframe
-                                                src="{{ asset('storage/' . $file->file_path) }}"
-                                                class="w-full h-[500px]"
-                                            ></iframe>
-                                        @endif
-
-                                    </div>
-                                </div>
-
-                            </div>
+                            </a>
 
                         @endforeach
 
@@ -276,81 +245,162 @@
 
                     <div class="space-y-3 text-sm">
 
-                        {{-- Submitted --}}
-                        <div class="flex items-start gap-2">
-                            <div class="w-2 h-2 rounded-full bg-gray-400 mt-1.5 shrink-0"></div>
-                            <div>
-                                <p>Complaint submitted by <span class="font-medium">{{ $complaint->user->name }}</span></p>
-                                <p class="text-xs text-gray-400">{{ $complaint->created_at->format('d M Y H:i') }}</p>
-                            </div>
-                        </div>
+                        @php
+                            $activities = collect();
 
-                        {{-- First Assignment --}}
-                        @if($complaint->assigned_at)
-                            <div class="flex items-start gap-2">
-                                <div class="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
-                                <div>
-                                    <p>Assigned to <span class="font-medium">{{ $complaint->agent?->name }}</span></p>
-                                    <p class="text-xs text-gray-400">{{ $complaint->assigned_at->format('d M Y H:i') }}</p>
+                            // Submitted
+                            $activities->push((object)[
+                                'time' => $complaint->created_at,
+                                'type' => 'submitted',
+                            ]);
+
+                            // Assigned
+                            if($complaint->assigned_at) {
+                                $activities->push((object)[
+                                    'time' => $complaint->assigned_at,
+                                    'type' => 'assigned',
+                                ]);
+                            }
+
+                            // Reassignments
+                            foreach($complaint->assignments()->with(['fromAgent', 'toAgent', 'toDepartment', 'assignedByUser'])->get() as $assign) {
+                                $activities->push((object)[
+                                    'time' => $assign->created_at,
+                                    'type' => 'reassign',
+                                    'assign' => $assign
+                                ]);
+                            }
+
+                            // First Response
+                            if($complaint->first_response_at) {
+                                $activities->push((object)[
+                                    'time' => $complaint->first_response_at,
+                                    'type' => 'first_response',
+                                ]);
+                            }
+
+                            // Resolved
+                            if($complaint->resolved_at) {
+                                $activities->push((object)[
+                                    'time' => $complaint->resolved_at,
+                                    'type' => 'resolved',
+                                ]);
+                            }
+
+                            // Response SLA Breached
+                            if($complaint->sla_response_deadline && 
+                               $complaint->sla_response_deadline->isPast() && 
+                               (!$complaint->first_response_at || $complaint->first_response_at->greaterThan($complaint->sla_response_deadline))) {
+                                $activities->push((object)[
+                                    'time' => $complaint->sla_response_deadline,
+                                    'type' => 'response_breached',
+                                ]);
+                            }
+
+                            // Resolution SLA Breached
+                            if($complaint->sla_resolution_deadline && 
+                               $complaint->sla_resolution_deadline->isPast() && 
+                               (!$complaint->resolved_at || $complaint->resolved_at->greaterThan($complaint->sla_resolution_deadline))) {
+                                $activities->push((object)[
+                                    'time' => $complaint->sla_resolution_deadline,
+                                    'type' => 'resolution_breached',
+                                ]);
+                            }
+
+                            $activities = $activities->sortBy('time')->values();
+                        @endphp
+
+                        @foreach($activities as $act)
+
+                            @if($act->type === 'submitted')
+                                <div class="flex items-start gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-gray-400 mt-1.5 shrink-0"></div>
+                                    <div>
+                                        <p>Complaint submitted by <span class="font-medium">{{ $complaint->user->name }}</span></p>
+                                        <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        @endif
 
-                        {{-- Reassignment History --}}
-                        @foreach($complaint->assignments()->with(['fromAgent', 'toAgent', 'toDepartment', 'assignedByUser'])->latest()->get() as $assign)
-                            <div class="flex items-start gap-2">
-                                @if($assign->status === 'CONFIRMED')
-                                    <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
-                                @elseif($assign->status === 'REJECTED')
-                                    <div class="w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0"></div>
-                                @else
-                                    <div class="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0"></div>
-                                @endif
-                                <div>
-                                    <p>
-                                        Reassign
-                                        <span class="font-medium">{{ $assign->fromAgent?->name }}</span>
-                                        → <span class="font-medium">{{ $assign->toAgent?->name }}</span>
-                                        ({{ $assign->toDepartment?->name ?? 'Same dept' }})
-                                    </p>
-                                    <p class="text-xs text-gray-500">By: {{ $assign->assignedByUser?->name }}</p>
-                                    <p class="text-xs text-gray-500">Reason: {{ $assign->reason }}</p>
+                            @elseif($act->type === 'assigned')
+                                <div class="flex items-start gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
+                                    <div>
+                                        <p>Assigned to <span class="font-medium">{{ $complaint->agent?->name }}</span></p>
+                                        <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                    </div>
+                                </div>
 
-                                    @if($assign->status === 'CONFIRMED')
-                                        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-600">Confirmed</span>
-                                    @elseif($assign->status === 'REJECTED')
-                                        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-600">Rejected</span>
-                                        <p class="text-xs text-red-500 mt-1">{{ $assign->rejection_reason }}</p>
+                            @elseif($act->type === 'reassign')
+                                <div class="flex items-start gap-2">
+                                    @if($act->assign->status === 'CONFIRMED')
+                                        <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                                    @elseif($act->assign->status === 'REJECTED')
+                                        <div class="w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0"></div>
                                     @else
-                                        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-600">Pending</span>
+                                        <div class="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0"></div>
                                     @endif
+                                    <div>
+                                        <p>
+                                            Reassign
+                                            <span class="font-medium">{{ $act->assign->fromAgent?->name }}</span>
+                                            → <span class="font-medium">{{ $act->assign->toAgent?->name }}</span>
+                                            ({{ $act->assign->toDepartment?->name ?? 'Same dept' }})
+                                        </p>
+                                        <p class="text-xs text-gray-500">By: {{ $act->assign->assignedByUser?->name }}</p>
+                                        <p class="text-xs text-gray-500">Reason: {{ $act->assign->reason }}</p>
 
-                                    <p class="text-xs text-gray-400">{{ $assign->created_at->format('d M Y H:i') }}</p>
+                                        @if($act->assign->status === 'CONFIRMED')
+                                            <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-600">Confirmed</span>
+                                        @elseif($act->assign->status === 'REJECTED')
+                                            <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-600">Rejected</span>
+                                            <p class="text-xs text-red-500 mt-1">{{ $act->assign->rejection_reason }}</p>
+                                        @else
+                                            <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-600">Pending</span>
+                                        @endif
+
+                                        <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                    </div>
                                 </div>
-                            </div>
+
+                            @elseif($act->type === 'first_response')
+                                <div class="flex items-start gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                                    <div>
+                                        <p>Agent first response</p>
+                                        <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                    </div>
+                                </div>
+                                
+                            @elseif($act->type === 'response_breached')
+                                <div class="flex items-start gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-red-600 mt-1.5 shrink-0"></div>
+                                    <div>
+                                        <p class="text-red-600 font-medium">Response SLA Breached</p>
+                                        <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                    </div>
+                                </div>
+
+                            @elseif($act->type === 'resolution_breached')
+                                <div class="flex items-start gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-red-600 mt-1.5 shrink-0"></div>
+                                    <div>
+                                        <p class="text-red-600 font-medium">Resolution SLA Breached</p>
+                                        <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                    </div>
+                                </div>
+
+                            @elseif($act->type === 'resolved')
+                                <div class="flex items-start gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-green-600 mt-1.5 shrink-0"></div>
+                                    <div>
+                                        <p>Complaint resolved</p>
+                                        <p class="text-xs text-gray-400">{{ $act->time->format('d M Y H:i') }}</p>
+                                    </div>
+                                </div>
+
+                            @endif
+
                         @endforeach
-
-                        {{-- First Response --}}
-                        @if($complaint->first_response_at)
-                            <div class="flex items-start gap-2">
-                                <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
-                                <div>
-                                    <p>Agent first response</p>
-                                    <p class="text-xs text-gray-400">{{ $complaint->first_response_at->format('d M Y H:i') }}</p>
-                                </div>
-                            </div>
-                        @endif
-
-                        {{-- Resolved --}}
-                        @if($complaint->resolved_at)
-                            <div class="flex items-start gap-2">
-                                <div class="w-2 h-2 rounded-full bg-green-600 mt-1.5 shrink-0"></div>
-                                <div>
-                                    <p>Complaint resolved</p>
-                                    <p class="text-xs text-gray-400">{{ $complaint->resolved_at->format('d M Y H:i') }}</p>
-                                </div>
-                            </div>
-                        @endif
 
                     </div>
                 </x-ui.card>
@@ -390,7 +440,11 @@
                             {{-- Resolution SLA --}}
                             <div>
                                 <p class="text-gray-400 text-xs uppercase">Resolution SLA</p>
-                                @if($complaint->sla_resolution_deadline)
+                                @if(in_array($complaint->status, ['RESOLVED', 'CLOSED']))
+                                    <p class="text-green-600 font-medium">
+                                        ✓ Resolved {{ $complaint->resolved_at ? $complaint->resolved_at->diffForHumans() : '' }}
+                                    </p>
+                                @elseif($complaint->sla_resolution_deadline)
                                     @php
                                         $resDeadline = $complaint->sla_resolution_deadline;
                                         $slaStatus = $complaint->sla_status;
@@ -430,6 +484,7 @@
 
     {{-- ================= REASSIGN MODAL ================= --}}
     <div
+        x-cloak
         x-show="openReassign"
         x-transition
         class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"

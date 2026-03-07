@@ -247,7 +247,8 @@ class SupervisorComplaintController extends Controller
 
         ComplaintInternalNote::create([
             'complaint_id' => $complaint->id,
-            'user_id' => $user->id,
+            'author_id' => $user->id,
+            'author_role' => $user->role,
             'note' => "Reassign requested: to Agent ID {$request->agent_id}. Awaiting confirmation from current agent. Reason: {$request->reason}",
         ]);
 

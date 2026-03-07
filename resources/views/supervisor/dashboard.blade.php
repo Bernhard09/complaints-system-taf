@@ -1,12 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="text-lg font-semibold text-gray-800">
-            Agent Workspace
+            Dashboard
         </h2>
     </x-slot>
 
-    <div class="bg-gray-100 min-h-screen py-10">
-        <div class="max-w-screen-2xl mx-auto px-10 space-y-8">
+    <div class="bg-gray-100 min-h-screen py-6 sm:py-10">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
 
     {{-- ================= METRICS ================= --}}
     <div class="flex flex-wrap gap-4">
@@ -185,17 +185,21 @@
 
                                     <div class="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition" data-complaint-id="{{ $complaint->id }}" data-complaint-status="{{ $complaint->status }}">
 
-                                        <div class="text-xs text-gray-400 flex justify-between">
-                                            <span class="text-sm">
-                                                {{ $complaint->contract_number }}
-                                            </span>
-
-                                            <span class="text-xs">
-                                                #{{ $complaint->id }}
-                                            </span>
+                                        <div class="text-xs text-gray-400 flex justify-between mb-1">
+                                            <span>#{{ $complaint->id }}</span>
+                                            
+                                            @if($complaint->sla_status === 'BREACHED' && !in_array($complaint->status, ['RESOLVED', 'CLOSED']))
+                                                <span class="text-red-600 font-semibold bg-red-100 px-1.5 py-0.5 rounded text-[10px]">
+                                                    BREACHED
+                                                </span>
+                                            @endif
                                         </div>
 
-                                        <p class="mt-2 font-medium text-sm">
+                                        <div class="text-xs font-semibold text-gray-600">
+                                            {{ $complaint->contract_number ?? '-' }}
+                                        </div>
+
+                                        <p class="mt-2 font-medium text-sm text-gray-900">
                                             {{ $complaint->complaint_reason }}
                                         </p>
 
@@ -209,7 +213,7 @@
                                             </span>
 
                                             <a href="{{ route('supervisor.complaints.show', $complaint) }}"
-                                                class="text-indigo-600">
+                                                class="text-indigo-600 hover:underline">
                                                 View →
                                             </a>
                                         </div>
@@ -288,8 +292,8 @@
 
 
                 {{-- TABLE --}}
-                <div class="overflow-hidden rounded-xl border">
-                    <table class="w-full text-sm">
+                <div class="overflow-x-auto rounded-xl border">
+                    <table class="w-full text-sm whitespace-nowrap">
                         <thead class="bg-gray-50 text-gray-600">
                             <tr>
                                 <th class="px-6 py-3 text-left">ID</th>

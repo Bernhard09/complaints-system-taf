@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name') }}</title>
 
@@ -11,6 +12,9 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
 
 <body class="h-screen overflow-hidden bg-gray-100">
@@ -59,30 +63,38 @@
     </aside>
 
     {{-- MAIN --}}
-    <div class="flex-1 flex flex-col">
+    <div class="flex-1 flex flex-col min-w-0">
 
-        <header class="bg-white border-b px-6 py-4 flex items-center justify-between">
+        <header class="bg-white border-b px-4 sm:px-6 py-4 flex items-center justify-between">
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 md:gap-4 flex-1">
 
-                <button class="md:hidden"
+                <button class="md:hidden p-2 text-gray-600 hover:text-indigo-600"
                         @click="mobileOpen = true">
-                    ☰
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
                 </button>
 
-                <button class="hidden md:block"
+                <button class="hidden md:block p-2 text-gray-400 hover:text-indigo-600 transition"
                         @click="collapsed = !collapsed">
                     ⇔
                 </button>
 
-                <h1 class="text-lg font-semibold text-gray-800">
-                    {{ $pageTitle ?? '' }}
+                <h1 class="text-base md:text-lg font-semibold text-gray-800 truncate" style="max-width: 150px;">
+                    @if (isset($header))
+                        {{ $header }}
+                    @elseif (isset($pageTitle))
+                        {{ $pageTitle }}
+                    @else
+                        {{ config('app.name') }}
+                    @endif
                 </h1>
 
             </div>
 
             {{-- Language Switcher & Notification Bell --}}
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-1 md:gap-4">
 
                 {{-- Language Switcher Dropdown --}}
                 @auth
@@ -223,7 +235,7 @@
 
         </header>
 
-        <main class="flex-1 overflow-y-auto p-6">
+        <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
             {{ $slot }}
         </main>
 

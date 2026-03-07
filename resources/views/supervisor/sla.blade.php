@@ -3,8 +3,8 @@
         SLA Monitor
     </x-slot>
 
-    <div class="bg-gray-100 min-h-screen py-10">
-        <div class="max-w-screen-2xl mx-auto px-10 space-y-6">
+    <div class="bg-gray-100 min-h-screen py-6 sm:py-10">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- METRICS --}}
             <div class="flex flex-wrap gap-4">
@@ -49,8 +49,8 @@
                         <span class="text-sm font-normal text-gray-500">— First response deadline</span>
                     </h2>
 
-                    <div class="overflow-hidden rounded-xl border">
-                        <table class="w-full text-sm">
+                    <div class="overflow-x-auto rounded-xl border">
+                        <table class="w-full text-sm whitespace-nowrap">
                             <thead class="bg-gray-50 text-gray-600">
                                 <tr>
                                     <th class="px-6 py-3 text-left">ID</th>
@@ -116,8 +116,8 @@
                         <span class="text-sm font-normal text-gray-500">— Task completion deadline</span>
                     </h2>
 
-                    <div class="overflow-hidden rounded-xl border">
-                        <table class="w-full text-sm">
+                    <div class="overflow-x-auto rounded-xl border">
+                        <table class="w-full text-sm whitespace-nowrap">
                             <thead class="bg-gray-50 text-gray-600">
                                 <tr>
                                     <th class="px-6 py-3 text-left">ID</th>
