@@ -12,10 +12,10 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 @php
                     $overviewCards = [
-                        ['label'=>'Active','value'=>$metrics['active'],'color'=>'indigo','key'=>'active'],
-                        ['label'=>'Waiting User','value'=>$metrics['waiting'],'color'=>'amber','key'=>'waiting'],
-                        ['label'=>'Breached SLA','value'=>$metrics['breached'],'color'=>'red','key'=>'breached'],
-                        ['label'=>'Resolved Today','value'=>$metrics['resolved_today'],'color'=>'green','key'=>'resolved_today'],
+                        ['label'=>__('Active'),'value'=>$metrics['active'],'color'=>'indigo','key'=>'active'],
+                        ['label'=>__('Waiting User'),'value'=>$metrics['waiting'],'color'=>'amber','key'=>'waiting'],
+                        ['label'=>__('Breached SLA'),'value'=>$metrics['breached'],'color'=>'red','key'=>'breached'],
+                        ['label'=>__('Resolved Today'),'value'=>$metrics['resolved_today'],'color'=>'green','key'=>'resolved_today'],
                     ];
                 @endphp
 
@@ -37,7 +37,7 @@
             <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
                 <div class="px-6 py-4 border-b flex justify-between items-center">
                     <h3 class="font-semibold text-gray-700">
-                        SLA Monitoring
+                        {{ __('SLA Monitoring') }}
                     </h3>
 
                     @if($breached->count())
@@ -57,7 +57,7 @@
                         </div>
                     @empty
                         <div class="text-gray-500">
-                            No SLA issues detected.
+                            {{ __('No SLA issues detected.') }}
                         </div>
                     @endforelse
                 </div>
@@ -255,7 +255,7 @@
                                    {{ $current === $status
                                         ? 'border-b-2 border-indigo-600 text-indigo-600'
                                         : 'text-gray-500 hover:text-gray-700' }}">
-                                    {{ $status }}
+                                    {{ __(str_replace('_', ' ', $status)) }}
                                 </a>
                             @endforeach
                         </div>

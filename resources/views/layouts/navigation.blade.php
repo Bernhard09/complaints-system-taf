@@ -21,15 +21,15 @@
                         {{ __('Dashboard') }}
                     </x-nav-link> --}}
                     @if(auth()->user()->role === 'USER')
-                        <a href="{{ route('user.dashboard') }}" class="ml-4">Dashboard</a>
+                        <a href="{{ route('user.dashboard') }}" class="ml-4">{{ __('Dashboard') }}</a>
                     @endif
 
                     @if(auth()->user()->role === 'AGENT')
-                        <a href="{{ route('agent.dashboard') }}" class="ml-4">Dashboard</a>
+                        <a href="{{ route('agent.dashboard') }}" class="ml-4">{{ __('Dashboard') }}</a>
                     @endif
 
                     @if(auth()->user()->role === 'SUPERVISOR')
-                        <a href="{{ route('supervisor.dashboard') }}" class="ml-4">Dashboard</a>
+                        <a href="{{ route('supervisor.dashboard') }}" class="ml-4">{{ __('Dashboard') }}</a>
                     @endif
                 </div>
             </div>

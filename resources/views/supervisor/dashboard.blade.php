@@ -12,35 +12,35 @@
     <div class="flex flex-wrap gap-4">
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-orange-500 flex-1 min-w-[160px]">
-            <p class="text-xs text-gray-500">UNASSIGNED</p>
+            <p class="text-xs text-gray-500">{{ __('UNASSIGNED') }}</p>
             <p class="text-2xl font-semibold text-orange-500" data-poll-key="incoming">
                 {{ $metrics['incoming'] ?? 0 }}
             </p>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-indigo-500 flex-1 min-w-[160px]">
-            <p class="text-xs text-gray-500">ASSIGNED</p>
+            <p class="text-xs text-gray-500">{{ __('ASSIGNED') }}</p>
             <p class="text-2xl font-semibold text-indigo-500" data-poll-key="assigned">
                 {{ $metrics['assigned'] ?? 0 }}
             </p>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-blue-500 flex-1 min-w-[160px]">
-            <p class="text-xs text-gray-500">IN PROGRESS</p>
+            <p class="text-xs text-gray-500">{{ __('IN PROGRESS') }}</p>
             <p class="text-2xl font-semibold text-blue-500" data-poll-key="in_progress">
                 {{ $metrics['in_progress'] ?? 0 }}
             </p>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-500 flex-1 min-w-[160px]">
-            <p class="text-xs text-gray-500">BREACHED SLA</p>
+            <p class="text-xs text-gray-500">{{ __('BREACHED SLA') }}</p>
             <p class="text-2xl font-semibold text-red-500" data-poll-key="breached">
                 {{ $metrics['breached'] ?? 0 }}
             </p>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-green-500 flex-1 min-w-[160px]">
-            <p class="text-xs text-gray-500">RESOLVED TODAY</p>
+            <p class="text-xs text-gray-500">{{ __('RESOLVED TODAY') }}</p>
             <p class="text-2xl font-semibold text-green-500" data-poll-key="resolved_today">
                 {{ $metrics['resolved_today'] ?? 0 }}
             </p>
@@ -50,12 +50,12 @@
 
     {{-- ================= SLA BLOCK ================= --}}
     <div class="bg-white rounded-xl shadow-sm p-4">
-        <h3 class="font-semibold mb-2">SLA Monitoring</h3>
+        <h3 class="font-semibold mb-2">{{ __('SLA Monitoring') }}</h3>
         @if(($metrics['breached'] ?? 0) == 0)
             <p class="text-gray-500 text-sm">No SLA issues detected.</p>
         @else
             <p class="text-red-500 text-sm">
-                {{ $metrics['breached'] }} complaints breached SLA.
+                {{ $metrics['breached'] }} {{ __('complaints breached SLA.') }}
             </p>
         @endif
     </div>
@@ -251,7 +251,7 @@
                            {{ $current === $status
                                 ? 'border-b-2 border-indigo-600 text-indigo-600'
                                 : 'text-gray-500 hover:text-gray-700' }}">
-                            {{ str_replace('_', ' ', $status) }}
+                            {{ __(str_replace('_', ' ', $status)) }}
                         </a>
                     @endforeach
                 </div>

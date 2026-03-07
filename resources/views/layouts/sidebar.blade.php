@@ -33,7 +33,7 @@
                 <div>
                     <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                        x-show="!collapsed">
-                        Workspace
+                        {{ __('Workspace') }}
                     </p>
 
                     <div class="space-y-1">
@@ -42,14 +42,14 @@
                            class="sidebar-link {{ request()->routeIs('agent.dashboard') ? 'active' : '' }}">
 
                             <x-heroicon-o-home class="w-5 h-5" />
-                            <span x-show="!collapsed">Dashboard</span>
+                            <span x-show="!collapsed">{{ __('Dashboard') }}</span>
                         </a>
 
                         <a href="{{ route('agent.history') }}"
                            class="sidebar-link {{ request()->routeIs('agent.history') ? 'active' : '' }}">
 
                             <x-heroicon-o-archive-box class="w-5 h-5" />
-                            <span x-show="!collapsed">Complaint History</span>
+                            <span x-show="!collapsed">{{ __('Complaint History') }}</span>
                         </a>
 
                     </div>
@@ -59,14 +59,14 @@
                 <div>
                     <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                        x-show="!collapsed">
-                        Monitoring
+                        {{ __('Monitoring') }}
                     </p>
 
                     <a href="{{ route('agent.sla') }}"
                        class="sidebar-link {{ request()->routeIs('agent.sla') ? 'active' : '' }}">
 
                         <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
-                        <span x-show="!collapsed">SLA Monitor</span>
+                        <span x-show="!collapsed">{{ __('SLA Monitor') }}</span>
                     </a>
                 </div>
 
@@ -74,14 +74,14 @@
                 <div>
                     <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                        x-show="!collapsed">
-                        Communications
+                        {{ __('Communications') }}
                     </p>
 
                     <a href="{{ route('notifications.inbox') }}"
                        class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
 
                         <x-heroicon-o-bell class="w-5 h-5" />
-                        <span x-show="!collapsed">Inbox</span>
+                        <span x-show="!collapsed">{{ __('Inbox') }}</span>
                         @php $agentUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
                         @if($agentUnread > 0)
                             <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
@@ -100,7 +100,7 @@
                 <div>
                     <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                        x-show="!collapsed">
-                        Workspace
+                        {{ __('Workspace') }}
                     </p>
 
                     <div class="space-y-1">
@@ -109,14 +109,14 @@
                            class="sidebar-link {{ request()->routeIs('supervisor.dashboard') ? 'active' : '' }}">
 
                             <x-heroicon-o-home class="w-5 h-5" />
-                            <span x-show="!collapsed">Dashboard</span>
+                            <span x-show="!collapsed">{{ __('Dashboard') }}</span>
                         </a>
 
                         <a href="{{ route('supervisor.history') }}"
                            class="sidebar-link {{ request()->routeIs('supervisor.history') ? 'active' : '' }}">
 
                             <x-heroicon-o-archive-box class="w-5 h-5" />
-                            <span x-show="!collapsed">Complaint History</span>
+                            <span x-show="!collapsed">{{ __('Complaint History') }}</span>
                         </a>
 
                     </div>
@@ -126,14 +126,14 @@
                 <div>
                     <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                        x-show="!collapsed">
-                        Monitoring
+                        {{ __('Monitoring') }}
                     </p>
 
                     <a href="{{ route('supervisor.sla') }}"
                        class="sidebar-link {{ request()->routeIs('supervisor.sla') ? 'active' : '' }}">
 
                         <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
-                        <span x-show="!collapsed">SLA Monitor</span>
+                        <span x-show="!collapsed">{{ __('SLA Monitor') }}</span>
                     </a>
                 </div>
 
@@ -141,14 +141,14 @@
                 <div>
                     <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                        x-show="!collapsed">
-                        Communications
+                        {{ __('Communications') }}
                     </p>
 
                     <a href="{{ route('notifications.inbox') }}"
                        class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
 
                         <x-heroicon-o-bell class="w-5 h-5" />
-                        <span x-show="!collapsed">Inbox</span>
+                        <span x-show="!collapsed">{{ __('Inbox') }}</span>
                         @php $supUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
                         @if($supUnread > 0)
                             <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
@@ -167,7 +167,7 @@
                 <div>
                     <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                        x-show="!collapsed">
-                        Workspace
+                        {{ __('Workspace') }}
                     </p>
 
                     <div class="space-y-1">
@@ -176,14 +176,14 @@
                            class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}">
 
                             <x-heroicon-o-home class="w-5 h-5" />
-                            <span x-show="!collapsed">Dashboard</span>
+                            <span x-show="!collapsed">{{ __('Dashboard') }}</span>
                         </a>
 
                         <a href="{{ route('user.complaints') }}"
                            class="sidebar-link {{ request()->routeIs('user.complaints') ? 'active' : '' }}">
 
                             <x-heroicon-o-document-text class="w-5 h-5" />
-                            <span x-show="!collapsed">Complaints</span>
+                            <span x-show="!collapsed">{{ __('Complaints') }}</span>
                         </a>
 
                     </div>
@@ -193,14 +193,14 @@
                 <div>
                     <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                        x-show="!collapsed">
-                        Communications
+                        {{ __('Communications') }}
                     </p>
 
                     <a href="{{ route('notifications.inbox') }}"
                        class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
 
                         <x-heroicon-o-bell class="w-5 h-5" />
-                        <span x-show="!collapsed">Inbox</span>
+                        <span x-show="!collapsed">{{ __('Inbox') }}</span>
                         @php $userUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
                         @if($userUnread > 0)
                             <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
@@ -216,14 +216,14 @@
             <div>
                 <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
                    x-show="!collapsed">
-                    Account
+                    {{ __('Account') }}
                 </p>
 
                 <a href="{{ route('profile.edit') }}"
                    class="sidebar-link {{ request()->routeIs('profile') ? 'active' : '' }}">
 
                     <x-heroicon-o-user class="w-5 h-5" />
-                    <span x-show="!collapsed">Profile</span>
+                    <span x-show="!collapsed">{{ __('Profile') }}</span>
                 </a>
 
                 <form method="POST" action="{{ route('logout') }}">
@@ -232,7 +232,7 @@
                             class="sidebar-link text-red-600 hover:bg-red-50 w-full">
 
                         <x-heroicon-o-arrow-left-on-rectangle class="w-5 h-5" />
-                        <span x-show="!collapsed">Logout</span>
+                        <span x-show="!collapsed">{{ __('Logout') }}</span>
                     </button>
                 </form>
             </div>

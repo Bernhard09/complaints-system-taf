@@ -30,7 +30,7 @@
 
                 <x-ui.card class="p-6">
 
-                    <h3 class="font-semibold mb-4">Conversation</h3>
+                    <h3 class="font-semibold mb-4">{{ __('Conversation') }}</h3>
 
                     <div id="chatBox"
                             class="h-[65vh] overflow-y-auto space-y-4 pr-2 scroll-smooth">
@@ -191,7 +191,7 @@
                                        placeholder="Type your message..."
                                 />
 
-                                <x-ui.button>Send</x-ui.button>
+                                <x-ui.button>{{ __('Send') }}</x-ui.button>
                             </div>
                         </form>
                     @elseif($user->role === 'SUPERVISOR')
@@ -214,7 +214,7 @@
                     {{-- SLA --}}
                     @if($complaint->sla_response_deadline || $complaint->sla_resolution_deadline)
                         <x-ui.card class="p-6">
-                            <h3 class="font-semibold mb-4">SLA</h3>
+                            <h3 class="font-semibold mb-4">{{ __('SLA') }}</h3>
 
                             <div class="space-y-4 text-sm">
 
@@ -351,14 +351,14 @@
                         @else
                             <div class="space-y-3 text-sm">
                                 <div>
-                                    <p class="text-gray-400 text-xs uppercase">Name</p>
+                                    <p class="text-gray-400 text-xs uppercase">{{ __('Name') }}</p>
                                     <p class="font-semibold">
                                         {{ $complaint->agent->name ?? '-' }}
                                     </p>
                                 </div>
 
                                 <div>
-                                    <p class="text-gray-400 text-xs uppercase">Department</p>
+                                    <p class="text-gray-400 text-xs uppercase">{{ __('Department') }}</p>
                                     <p>
                                         {{ $complaint->agent->department->name ?? '-' }}
                                     </p>
@@ -369,7 +369,7 @@
 
                     {{-- Activity --}}
                     <x-ui.card class="p-6">
-                        <h3 class="font-semibold mb-4">Activity</h3>
+                        <h3 class="font-semibold mb-4">{{ __('Activity') }}</h3>
 
                         <div class="space-y-3 text-sm">
 
@@ -431,19 +431,41 @@
                     {{-- Actions --}}
                     @if(!$isResolved)
                         <x-ui.card class="p-6">
-                            <h3 class="font-semibold mb-4">Actions</h3>
+                            <h3 class="font-semibold mb-4">{{ __('Actions') }}</h3>
 
                             <div class="space-y-3">
 
                                 {{-- USER: Confirm/Reject resolution --}}
                                 @if($user->role === 'USER' && $status === 'WAITING_CONFIRMATION')
-                                    <form method="POST"
-                                            action="{{ route('complaints.confirm', $complaint) }}">
-                                        @csrf
-                                        <button class="w-full bg-green-600 text-white py-2 rounded-lg">
-                                            ✓ Confirm Resolved
+                                    <div x-data="{ showRejectModal: false }" class="space-y-3">
+                                        <form method="POST"
+                                                action="{{ route('complaints.confirm', $complaint) }}">
+                                            @csrf
+                                            <button class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
+                                                ✓ Confirm Resolved
+                                            </button>
+                                        </form>
+
+                                        <button @click="showRejectModal = !showRejectModal"
+                                                class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
+                                            ✕ Reject Resolution
                                         </button>
-                                    </form>
+
+                                        {{-- Reject Modal / Inline Form --}}
+                                        <div x-show="showRejectModal" x-transition class="mt-3 bg-red-50 p-4 rounded-xl border border-red-200">
+                                            <form method="POST" action="{{ route('complaints.reject', $complaint) }}">
+                                                @csrf
+                                                <label class="block text-xs font-semibold text-red-700 mb-1">Reason for Rejection</label>
+                                                <textarea name="reason" rows="3" required
+                                                          placeholder="Please explain why you are rejecting the resolution..."
+                                                          class="w-full border-red-300 rounded-lg px-3 py-2 text-sm focus:ring-red-500 focus:border-red-500"></textarea>
+                                                <div class="flex gap-2 mt-3 justify-end">
+                                                    <button type="button" @click="showRejectModal = false" class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+                                                    <button type="submit" class="bg-red-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-red-700">Submit Rejection</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
                                 @endif
 
                                 {{-- AGENT actions --}}
@@ -478,7 +500,7 @@
                     {{-- Internal Notes --}}
                     @if(in_array($user->role, ['AGENT','SUPERVISOR']))
                         <x-ui.card class="p-6">
-                            <h3 class="font-semibold mb-4">Internal Notes</h3>
+                            <h3 class="font-semibold mb-4">{{ __('Internal Notes') }}</h3>
 
                             <div class="space-y-3 max-h-60 overflow-y-auto text-sm">
 
@@ -621,6 +643,18 @@
         if (statusBadge) {
             let currentStatus = statusBadge.dataset.currentStatus;
 
+            const statusTranslations = @json([
+                'SUBMITTED' => __('SUBMITTED'),
+                'ASSIGNED' => __('ASSIGNED'),
+                'IN_PROGRESS' => __('IN_PROGRESS'),
+                'WAITING_USER' => __('WAITING_USER'),
+                'WAITING_CONFIRMATION' => __('WAITING_CONFIRMATION'),
+                'RESOLVED' => __('RESOLVED'),
+                'PENDING_REASSIGN' => __('PENDING_REASSIGN'),
+                'CLOSED' => __('CLOSED'),
+                'CANCELLED' => __('CANCELLED'),
+            ]);
+
             const statusColors = {
                 'IN_PROGRESS':   'bg-indigo-100 text-indigo-700',
                 'WAITING_USER':  'bg-amber-100 text-amber-700',
@@ -643,7 +677,7 @@
                         const badgeSpan = statusBadge.querySelector('span');
                         if (badgeSpan) {
                             badgeSpan.className = 'px-3 py-1 rounded-full text-xs font-medium ' + (statusColors[data.status] || 'bg-gray-100 text-gray-600');
-                            badgeSpan.textContent = data.status.replace(/_/g, ' ');
+                            badgeSpan.textContent = statusTranslations[data.status] || data.status.replace(/_/g, ' ');
                         }
                         statusBadge.dataset.currentStatus = data.status;
 

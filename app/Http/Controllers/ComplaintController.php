@@ -188,6 +188,51 @@ class ComplaintController extends Controller
         return back()->with('success', 'Complaint has been closed. Thank you.');
     }
 
+    public function rejectResolution(Request $request, Complaint $complaint)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:1000'
+        ]);
+
+        $user = $request->user();
+
+        abort_unless(
+            $user->role === 'USER'
+            && $complaint->user_id === $user->id
+            && $complaint->status === 'WAITING_CONFIRMATION',
+            403
+        );
+
+        $complaint->update([
+            'status' => 'IN_PROGRESS',
+        ]);
+
+        // Add internal note about rejection
+        $complaint->internalNotes()->create([
+            'author_id' => $user->id,
+            'note' => "USER REJECTED RESOLUTION. Reason: " . $request->reason,
+        ]);
+
+        $complaint->messages()->create([
+            'sender_id' => $user->id,
+            'sender_role' => 'USER',
+            'message' => "I have rejected the resolution. Reason: " . $request->reason,
+            'is_system' => true,
+        ]);
+
+        // Notify agent
+        if ($complaint->agent_id) {
+            NotificationService::send(
+                $complaint->agent_id, 'error',
+                'Resolution Rejected',
+                "User rejected resolution for complaint #{$complaint->id}.",
+                route('complaints.show', $complaint)
+            );
+        }
+
+        return back()->with('success', 'Complaint resolution has been rejected. The agent will review your concern.');
+    }
+
     public function cancel(Request $request, Complaint $complaint)
     {
         $user = $request->user();

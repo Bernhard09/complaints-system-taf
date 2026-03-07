@@ -30,6 +30,12 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+Route::get('/test-lang', function () {
+    app()->setLocale('id');
+    return __('Workspace') . ' | ' . app()->getLocale() . ' | ' . base_path('lang/id.json') . ' | ' . (file_exists(base_path('lang/id.json')) ? 'EXISTS' : 'MISSING');
+});
+
+
 /*
 |--------------------------------------------------------------------------
 | Dashboard
@@ -55,11 +61,24 @@ Route::get('/dashboard', function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Language Switch
+    Route::get('/lang/{locale}', function (string $locale) {
+        if (!in_array($locale, ['en', 'id'])) {
+            abort(400);
+        }
+
+        session()->put('locale', $locale);
+        session()->save(); // Force save to see if it fixes
+        
+        \Log::info('Language switched to: ' . $locale . ' for user ' . auth()->id());
+        
+        return back();
+    })->name('lang.switch');
 
     Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])
         ->whereNumber('complaint')
@@ -146,6 +165,10 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
     // confirm resolution
     Route::post('/complaints/{complaint}/confirm', [ComplaintController::class, 'confirmResolution']
         )->name('complaints.confirm');
+
+    // reject resolution
+    Route::post('/complaints/{complaint}/reject-resolution', [ComplaintController::class, 'rejectResolution']
+        )->name('complaints.reject');
 
     // cancel complaint
     Route::post('/complaints/{complaint}/cancel', [ComplaintController::class, 'cancel']
