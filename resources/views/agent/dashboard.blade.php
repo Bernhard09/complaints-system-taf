@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="bg-gray-100 min-h-screen py-6 sm:py-10">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+        <div class="max-w-screen-2xl mx-auto space-y-6 sm:space-y-8">
 
             {{-- ================= OVERVIEW ================= --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -179,18 +179,18 @@
 
                             @foreach($columns as $status=>$label)
 
-                                <div class="w-80 flex-shrink-0 bg-gray-50 rounded-xl p-4 border">
+                                <div class="w-80 flex-shrink-0 bg-gray-50 rounded-xl p-4 border" data-kanban-column="{{ $status }}">
 
                                     <div class="flex justify-between mb-4">
                                         <h3 class="text-sm font-semibold text-gray-700">
                                             {{ $label }}
                                         </h3>
-                                        <span class="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                                        <span class="text-xs bg-gray-200 px-2 py-0.5 rounded-full" data-kanban-count>
                                             {{ $board[$status]->count() ?? 0 }}
                                         </span>
                                     </div>
 
-                                    <div class="space-y-4">
+                                    <div class="space-y-4" data-kanban-cards>
 
                                         @foreach($board[$status] ?? [] as $ticket)
 
@@ -369,13 +369,94 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const statusColors = {
-        'SUBMITTED':            { bg: '#f3f4f6', text: '#4b5563' },
-        'ASSIGNED':             { bg: '#e0e7ff', text: '#4338ca' },
-        'IN_PROGRESS':          { bg: '#dbeafe', text: '#1d4ed8' },
-        'WAITING_USER':         { bg: '#fef3c7', text: '#b45309' },
-        'WAITING_CONFIRMATION': { bg: '#f3e8ff', text: '#7c3aed' },
-        'RESOLVED':             { bg: '#d1fae5', text: '#065f46' },
+        'SUBMITTED':            { bg: '#f3f4f6', text: '#4b5563', cls: 'bg-gray-100 text-gray-600' },
+        'ASSIGNED':             { bg: '#e0e7ff', text: '#4338ca', cls: 'bg-indigo-100 text-indigo-700' },
+        'IN_PROGRESS':          { bg: '#dbeafe', text: '#1d4ed8', cls: 'bg-blue-100 text-blue-700' },
+        'WAITING_USER':         { bg: '#fef3c7', text: '#b45309', cls: 'bg-amber-100 text-amber-700' },
+        'WAITING_CONFIRMATION': { bg: '#f3e8ff', text: '#7c3aed', cls: 'bg-purple-100 text-purple-700' },
+        'RESOLVED':             { bg: '#d1fae5', text: '#065f46', cls: 'bg-green-100 text-green-700' },
     };
+
+    const kanbanStatuses = ['ASSIGNED', 'IN_PROGRESS', 'WAITING_USER', 'WAITING_CONFIRMATION', 'RESOLVED'];
+    let prevComplaints = {};
+
+    // Build initial state from DOM
+    document.querySelectorAll('[data-complaint-id]').forEach(el => {
+        prevComplaints[el.dataset.complaintId] = el.dataset.complaintStatus;
+    });
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function buildKanbanCard(c) {
+        const slaHtml = (c.sla_status === 'BREACHED' && !['RESOLVED','CLOSED'].includes(c.status))
+            ? `<span class="text-red-600 font-semibold bg-red-100 px-1.5 py-0.5 rounded text-[10px]">BREACHED</span>`
+            : '';
+
+        return `<div class="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition" data-complaint-id="${c.id}" data-complaint-status="${c.status}">
+            <div class="text-xs text-gray-400 flex justify-between mb-1">
+                <span>#${c.id}</span>
+                ${slaHtml}
+            </div>
+            <div class="text-xs font-semibold text-gray-600">${escapeHtml(c.contract_number)}</div>
+            <div class="mt-2 font-medium text-sm text-gray-900">${escapeHtml(c.complaint_reason)}</div>
+            <div class="text-xs text-gray-500 mt-1">${escapeHtml(c.user_name)}</div>
+            <div class="flex justify-between items-center mt-3 text-xs">
+                <span class="text-gray-400">${escapeHtml(c.created_at)}</span>
+                <a href="${c.url}" class="text-indigo-600 hover:underline">View →</a>
+            </div>
+        </div>`;
+    }
+
+    function rebuildKanban(complaints) {
+        const columns = document.querySelectorAll('[data-kanban-column]');
+        if (columns.length === 0) return;
+
+        const grouped = {};
+        kanbanStatuses.forEach(s => grouped[s] = []);
+        complaints.forEach(c => {
+            if (grouped[c.status]) grouped[c.status].push(c);
+        });
+
+        columns.forEach(col => {
+            const status = col.dataset.kanbanColumn;
+            if (!grouped[status]) return;
+
+            // Update count
+            const countEl = col.querySelector('[data-kanban-count]');
+            if (countEl) countEl.textContent = grouped[status].length;
+
+            // Rebuild cards
+            const cardsContainer = col.querySelector('[data-kanban-cards]');
+            if (cardsContainer) {
+                cardsContainer.innerHTML = grouped[status].map(c => buildKanbanCard(c)).join('');
+            }
+        });
+    }
+
+    function updateTableBadges(complaints) {
+        const map = {};
+        complaints.forEach(c => map[c.id] = c);
+
+        document.querySelectorAll('table [data-complaint-id]').forEach(el => {
+            const c = map[el.dataset.complaintId];
+            if (!c || el.dataset.complaintStatus === c.status) return;
+
+            const colors = statusColors[c.status] || statusColors['SUBMITTED'];
+            el.className = `px-3 py-1 rounded-full text-xs font-medium ${colors.cls}`;
+            el.textContent = c.status.replace(/_/g, ' ');
+            el.dataset.complaintStatus = c.status;
+
+            // Flash animation
+            el.style.transition = 'transform .3s';
+            el.style.transform = 'scale(1.15)';
+            setTimeout(() => el.style.transform = 'scale(1)', 400);
+        });
+    }
 
     async function pollAgentDashboard() {
         try {
@@ -395,23 +476,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Update complaint statuses
+            // Update kanban and table
             if (data.complaints) {
-                let needsReload = false;
-                data.complaints.forEach(c => {
-                    document.querySelectorAll(`[data-complaint-id="${c.id}"]`).forEach(el => {
-                        const oldStatus = el.dataset.complaintStatus;
-                        if (oldStatus && oldStatus !== c.status) {
-                            needsReload = true;
-                        }
-                    });
-                });
-                if (needsReload) {
-                    location.reload();
-                }
+                rebuildKanban(data.complaints);
+                updateTableBadges(data.complaints);
+
+                // Update previous state
+                prevComplaints = {};
+                data.complaints.forEach(c => prevComplaints[c.id] = c.status);
             }
         } catch (e) {}
     }
-    setInterval(pollAgentDashboard, 10000);
+    setInterval(pollAgentDashboard, 5000);
 });
 </script>
+

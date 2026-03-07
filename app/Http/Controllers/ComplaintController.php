@@ -221,16 +221,12 @@ class ComplaintController extends Controller
             'status' => 'IN_PROGRESS',
         ]);
 
-        // Add internal note about rejection
-        $complaint->internalNotes()->create([
-            'author_id' => $user->id,
-            'note' => "USER REJECTED RESOLUTION. Reason: " . $request->reason,
-        ]);
+
 
         $complaint->messages()->create([
             'sender_id' => $user->id,
             'sender_role' => 'USER',
-            'message' => "I have rejected the resolution. Reason: " . $request->reason,
+            'message' => $user->name . " has rejected the resolution. Reason: " . $request->reason,
             'is_system' => true,
         ]);
 

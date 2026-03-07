@@ -4,7 +4,7 @@
     </x-slot>
 
     <div class="bg-gray-100 min-h-screen py-6 sm:py-10">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-screen-2xl mx-auto space-y-6">
 
             {{-- METRICS --}}
             <div class="flex flex-wrap gap-4">

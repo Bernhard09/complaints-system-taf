@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="bg-gray-100 min-h-screen py-6 sm:py-10">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+        <div class="max-w-screen-2xl mx-auto space-y-6 sm:space-y-8">
 
     {{-- ================= METRICS ================= --}}
     <div class="flex flex-wrap gap-4">
@@ -168,18 +168,18 @@
 
                     @foreach($columns as $status=>$label)
 
-                        <div class="min-w-[20rem] flex-shrink-0 bg-gray-50 rounded-xl p-4 border">
+                        <div class="min-w-[20rem] flex-shrink-0 bg-gray-50 rounded-xl p-4 border" data-kanban-column="{{ $status }}">
 
                             <div class="flex justify-between mb-4">
                                 <h3 class="text-sm font-semibold text-gray-700">
                                     {{ $label }}
                                 </h3>
-                                <span class="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                                <span class="text-xs bg-gray-200 px-2 py-0.5 rounded-full" data-kanban-count>
                                     {{ $board[$status]->count() ?? 0 }}
                                 </span>
                             </div>
 
-                            <div class="space-y-4">
+                            <div class="space-y-4" data-kanban-cards>
 
                                 @forelse($board[$status] ?? [] as $complaint)
 
@@ -367,6 +367,91 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const statusColors = {
+        'SUBMITTED':            { cls: 'bg-orange-100 text-orange-700' },
+        'ASSIGNED':             { cls: 'bg-indigo-100 text-indigo-700' },
+        'IN_PROGRESS':          { cls: 'bg-blue-100 text-blue-700' },
+        'WAITING_USER':         { cls: 'bg-amber-100 text-amber-700' },
+        'WAITING_CONFIRMATION': { cls: 'bg-purple-100 text-purple-700' },
+        'RESOLVED':             { cls: 'bg-green-100 text-green-700' },
+    };
+
+    const kanbanStatuses = ['SUBMITTED', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_USER', 'RESOLVED'];
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function buildKanbanCard(c) {
+        const slaHtml = (c.sla_status === 'BREACHED' && !['RESOLVED','CLOSED'].includes(c.status))
+            ? `<span class="text-red-600 font-semibold bg-red-100 px-1.5 py-0.5 rounded text-[10px]">BREACHED</span>`
+            : '';
+
+        return `<div class="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition" data-complaint-id="${c.id}" data-complaint-status="${c.status}">
+            <div class="text-xs text-gray-400 flex justify-between mb-1">
+                <span>#${c.id}</span>
+                ${slaHtml}
+            </div>
+            <div class="text-xs font-semibold text-gray-600">${escapeHtml(c.contract_number)}</div>
+            <p class="mt-2 font-medium text-sm text-gray-900">${escapeHtml(c.complaint_reason)}</p>
+            <p class="text-xs text-gray-500 mt-1">${escapeHtml(c.user_name)}</p>
+            <div class="flex justify-between items-center mt-3 text-xs">
+                <span class="text-gray-400">${escapeHtml(c.created_at)}</span>
+                <a href="${c.url}" class="text-indigo-600 hover:underline">View →</a>
+            </div>
+        </div>`;
+    }
+
+    function rebuildKanban(complaints) {
+        const columns = document.querySelectorAll('[data-kanban-column]');
+        if (columns.length === 0) return;
+
+        const grouped = {};
+        kanbanStatuses.forEach(s => grouped[s] = []);
+        complaints.forEach(c => {
+            if (grouped[c.status]) grouped[c.status].push(c);
+        });
+
+        columns.forEach(col => {
+            const status = col.dataset.kanbanColumn;
+            if (!grouped[status]) return;
+
+            const countEl = col.querySelector('[data-kanban-count]');
+            if (countEl) countEl.textContent = grouped[status].length;
+
+            const cardsContainer = col.querySelector('[data-kanban-cards]');
+            if (cardsContainer) {
+                if (grouped[status].length > 0) {
+                    cardsContainer.innerHTML = grouped[status].map(c => buildKanbanCard(c)).join('');
+                } else {
+                    cardsContainer.innerHTML = '<p class="text-xs text-gray-400">No complaints</p>';
+                }
+            }
+        });
+    }
+
+    function updateTableBadges(complaints) {
+        const map = {};
+        complaints.forEach(c => map[c.id] = c);
+
+        document.querySelectorAll('table [data-complaint-id]').forEach(el => {
+            const c = map[el.dataset.complaintId];
+            if (!c || el.dataset.complaintStatus === c.status) return;
+
+            const colors = statusColors[c.status] || statusColors['SUBMITTED'];
+            el.className = `px-3 py-1 rounded-full text-xs font-medium ${colors.cls}`;
+            el.textContent = c.status.replace(/_/g, ' ');
+            el.dataset.complaintStatus = c.status;
+
+            el.style.transition = 'transform .3s';
+            el.style.transform = 'scale(1.15)';
+            setTimeout(() => el.style.transform = 'scale(1)', 400);
+        });
+    }
+
     async function pollSupervisorDashboard() {
         try {
             const resp = await fetch('/api/poll/supervisor-dashboard');
@@ -385,23 +470,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Update complaint statuses — reload if any status changed
+            // Update kanban and table
             if (data.complaints) {
-                let needsReload = false;
-                data.complaints.forEach(c => {
-                    document.querySelectorAll(`[data-complaint-id="${c.id}"]`).forEach(el => {
-                        const oldStatus = el.dataset.complaintStatus;
-                        if (oldStatus && oldStatus !== c.status) {
-                            needsReload = true;
-                        }
-                    });
-                });
-                if (needsReload) {
-                    location.reload();
-                }
+                rebuildKanban(data.complaints);
+                updateTableBadges(data.complaints);
             }
         } catch (e) {}
     }
-    setInterval(pollSupervisorDashboard, 10000);
+    setInterval(pollSupervisorDashboard, 5000);
 });
 </script>

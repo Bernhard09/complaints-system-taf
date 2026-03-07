@@ -130,6 +130,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/poll/user-dashboard', [DashboardController::class, 'pollUser'])->name('poll.user.dashboard');
     Route::get('/api/poll/agent-dashboard', [DashboardController::class, 'pollAgent'])->name('poll.agent.dashboard');
     Route::get('/api/poll/supervisor-dashboard', [DashboardController::class, 'pollSupervisor'])->name('poll.supervisor.dashboard');
+    Route::get('/api/poll/user-complaints', [DashboardController::class, 'pollUserComplaints'])->name('poll.user.complaints');
 
     // Complaint status polling
     Route::get('/api/poll/complaint/{complaint}/status', [DashboardController::class, 'pollComplaintStatus'])->name('poll.complaint.status');

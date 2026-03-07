@@ -5,7 +5,7 @@
 
 
 
-    <div class="mx-auto w-full max-w-5xl px-10 py-12">
+    <div class="mx-auto w-full max-w-5xl py-6 sm:py-12">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
             {{-- LEFT: FROM --}}

@@ -30,11 +30,12 @@
             @if($role === 'AGENT')
 
                 {{-- WORKSPACE --}}
-                <div>
-                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                <div class="mb-2">
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
                        x-show="!collapsed">
                         {{ __('Workspace') }}
                     </p>
+                    <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
 
                     <div class="space-y-1">
 
@@ -56,39 +57,45 @@
                 </div>
 
                 {{-- MONITORING --}}
-                <div>
-                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                <div class="mt-4">
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
                        x-show="!collapsed">
                         {{ __('Monitoring') }}
                     </p>
+                    <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
 
-                    <a href="{{ route('agent.sla') }}"
-                       class="sidebar-link {{ request()->routeIs('agent.sla') ? 'active' : '' }}">
+                    <div class="space-y-1">
+                        <a href="{{ route('agent.sla') }}"
+                           class="sidebar-link {{ request()->routeIs('agent.sla') ? 'active' : '' }}">
 
-                        <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
-                        <span x-show="!collapsed">{{ __('SLA Monitor') }}</span>
-                    </a>
+                            <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
+                            <span x-show="!collapsed">{{ __('SLA Monitor') }}</span>
+                        </a>
+                    </div>
                 </div>
 
                 {{-- INBOX --}}
-                <div>
-                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                <div class="mt-4">
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
                        x-show="!collapsed">
                         {{ __('Communications') }}
                     </p>
+                    <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
 
-                    <a href="{{ route('notifications.inbox') }}"
-                       class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
+                    <div class="space-y-1">
+                        <a href="{{ route('notifications.inbox') }}"
+                           class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
 
-                        <x-heroicon-o-bell class="w-5 h-5" />
-                        <span x-show="!collapsed">{{ __('Inbox') }}</span>
-                        @php $agentUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
-                        @if($agentUnread > 0)
-                            <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
-                                {{ $agentUnread > 9 ? '9+' : $agentUnread }}
-                            </span>
-                        @endif
-                    </a>
+                            <x-heroicon-o-bell class="w-5 h-5" />
+                            <span x-show="!collapsed">{{ __('Inbox') }}</span>
+                            @php $agentUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
+                            @if($agentUnread > 0)
+                                <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
+                                    {{ $agentUnread > 9 ? '9+' : $agentUnread }}
+                                </span>
+                            @endif
+                        </a>
+                    </div>
                 </div>
 
             @endif
@@ -97,11 +104,12 @@
             @if($role === 'SUPERVISOR')
 
                 {{-- WORKSPACE --}}
-                <div>
-                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                <div class="mb-2">
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
                        x-show="!collapsed">
                         {{ __('Workspace') }}
                     </p>
+                    <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
 
                     <div class="space-y-1">
 
@@ -123,39 +131,45 @@
                 </div>
 
                 {{-- MONITORING --}}
-                <div>
-                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                <div class="mt-4">
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
                        x-show="!collapsed">
                         {{ __('Monitoring') }}
                     </p>
+                    <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
 
-                    <a href="{{ route('supervisor.sla') }}"
-                       class="sidebar-link {{ request()->routeIs('supervisor.sla') ? 'active' : '' }}">
+                    <div class="space-y-1">
+                        <a href="{{ route('supervisor.sla') }}"
+                           class="sidebar-link {{ request()->routeIs('supervisor.sla') ? 'active' : '' }}">
 
-                        <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
-                        <span x-show="!collapsed">{{ __('SLA Monitor') }}</span>
-                    </a>
+                            <x-heroicon-o-exclamation-triangle class="w-5 h-5" />
+                            <span x-show="!collapsed">{{ __('SLA Monitor') }}</span>
+                        </a>
+                    </div>
                 </div>
 
                 {{-- INBOX --}}
-                <div>
-                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                <div class="mt-4">
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
                        x-show="!collapsed">
                         {{ __('Communications') }}
                     </p>
+                    <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
 
-                    <a href="{{ route('notifications.inbox') }}"
-                       class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
+                    <div class="space-y-1">
+                        <a href="{{ route('notifications.inbox') }}"
+                           class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
 
-                        <x-heroicon-o-bell class="w-5 h-5" />
-                        <span x-show="!collapsed">{{ __('Inbox') }}</span>
-                        @php $supUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
-                        @if($supUnread > 0)
-                            <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
-                                {{ $supUnread > 9 ? '9+' : $supUnread }}
-                            </span>
-                        @endif
-                    </a>
+                            <x-heroicon-o-bell class="w-5 h-5" />
+                            <span x-show="!collapsed">{{ __('Inbox') }}</span>
+                            @php $supUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
+                            @if($supUnread > 0)
+                                <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
+                                    {{ $supUnread > 9 ? '9+' : $supUnread }}
+                                </span>
+                            @endif
+                        </a>
+                    </div>
                 </div>
 
             @endif
@@ -164,11 +178,12 @@
             @if($role === 'USER')
 
                 {{-- WORKSPACE --}}
-                <div>
-                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                <div class="mb-2">
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
                        x-show="!collapsed">
                         {{ __('Workspace') }}
                     </p>
+                    <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
 
                     <div class="space-y-1">
 
@@ -190,34 +205,38 @@
                 </div>
 
                 {{-- INBOX --}}
-                <div>
-                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+                <div class="mt-4">
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
                        x-show="!collapsed">
                         {{ __('Communications') }}
                     </p>
+                    <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
 
-                    <a href="{{ route('notifications.inbox') }}"
-                       class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
+                    <div class="space-y-1">
+                        <a href="{{ route('notifications.inbox') }}"
+                           class="sidebar-link {{ request()->routeIs('notifications.inbox') ? 'active' : '' }}">
 
-                        <x-heroicon-o-bell class="w-5 h-5" />
-                        <span x-show="!collapsed">{{ __('Inbox') }}</span>
-                        @php $userUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
-                        @if($userUnread > 0)
-                            <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
-                                {{ $userUnread > 9 ? '9+' : $userUnread }}
-                            </span>
-                        @endif
-                    </a>
+                            <x-heroicon-o-bell class="w-5 h-5" />
+                            <span x-show="!collapsed">{{ __('Inbox') }}</span>
+                            @php $userUnread = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count(); @endphp
+                            @if($userUnread > 0)
+                                <span class="ml-auto bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full" x-show="!collapsed">
+                                    {{ $userUnread > 9 ? '9+' : $userUnread }}
+                                </span>
+                            @endif
+                        </a>
+                    </div>
                 </div>
 
             @endif
 
             {{-- =========== ACCOUNT (shared) =========== --}}
-            <div>
-                <p class="text-xs uppercase text-gray-400 tracking-wider mb-2"
+            <div class="mt-4">
+                <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
                    x-show="!collapsed">
                     {{ __('Account') }}
                 </p>
+                <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
 
                 <a href="{{ route('profile.edit') }}"
                    class="sidebar-link {{ request()->routeIs('profile') ? 'active' : '' }}">

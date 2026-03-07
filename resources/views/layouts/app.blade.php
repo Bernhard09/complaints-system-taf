@@ -11,7 +11,12 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Alpine Plugins -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine Core -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <style>
         [x-cloak] { display: none !important; }
     </style>
@@ -35,7 +40,7 @@
 </script>
 @endif
 
-<div x-data="{ collapsed: false, mobileOpen: false }"
+<div x-data="{ collapsed: $persist(false), mobileOpen: false }"
      class="flex h-screen overflow-hidden">
 
     {{-- MOBILE OVERLAY --}}
@@ -291,7 +296,7 @@
                 // Fetch initial list
                 this.poll(false);
                 // Poll every 10 seconds
-                setInterval(() => this.poll(true), 10000);
+                setInterval(() => this.poll(true), 5000);
             },
             async poll(showToasts) {
                 try {

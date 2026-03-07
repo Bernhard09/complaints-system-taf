@@ -3,7 +3,7 @@
         Dashboard
     </x-slot>
 
-    <div class="mx-auto w-full max-w-screen-2xl px-8 py-8 space-y-10">
+    <div class="mx-auto w-full max-w-screen-2xl space-y-6 sm:space-y-10">
 
         {{-- ROW 1: METRICS --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -207,7 +207,7 @@
                 }
             } catch (e) {}
         }
-        setInterval(pollDashboard, 10000);
+        setInterval(pollDashboard, 5000);
         pollDashboard();
     });
     </script>

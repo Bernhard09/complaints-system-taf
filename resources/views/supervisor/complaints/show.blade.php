@@ -14,7 +14,7 @@
         Complaint #{{ $complaint->id }}
     </x-slot>
 
-    <div class="w-full px-10 py-8">
+    <div class="w-full py-6 sm:py-8">
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -418,18 +418,18 @@
                         <div class="space-y-4 text-sm">
 
                             {{-- Response SLA --}}
-                            <div>
+                            <div id="sla-response-section">
                                 <p class="text-gray-400 text-xs uppercase">Response SLA</p>
                                 @if($complaint->first_response_at)
-                                    <p class="text-green-600 font-medium">
+                                    <p class="text-green-600 font-medium" id="sla-response-text">
                                         ✓ Responded {{ $complaint->first_response_at->diffForHumans() }}
                                     </p>
                                 @elseif($complaint->sla_response_deadline)
                                     @php $respBreached = now()->greaterThan($complaint->sla_response_deadline); @endphp
-                                    <p class="font-semibold {{ $respBreached ? 'text-red-600' : 'text-gray-700' }}">
+                                    <p class="font-semibold {{ $respBreached ? 'text-red-600' : 'text-gray-700' }}" id="sla-response-deadline">
                                         {{ $complaint->sla_response_deadline->format('d M Y H:i') }}
                                     </p>
-                                    <p class="text-xs {{ $respBreached ? 'text-red-500' : 'text-gray-500' }}">
+                                    <p class="text-xs {{ $respBreached ? 'text-red-500' : 'text-gray-500' }}" id="sla-response-badge">
                                         {{ $respBreached ? 'BREACHED' : $complaint->sla_response_deadline->diffForHumans() }}
                                     </p>
                                 @else
@@ -438,10 +438,10 @@
                             </div>
 
                             {{-- Resolution SLA --}}
-                            <div>
+                            <div id="sla-resolution-section">
                                 <p class="text-gray-400 text-xs uppercase">Resolution SLA</p>
                                 @if(in_array($complaint->status, ['RESOLVED', 'CLOSED']))
-                                    <p class="text-green-600 font-medium">
+                                    <p class="text-green-600 font-medium" id="sla-resolution-text">
                                         ✓ Resolved {{ $complaint->resolved_at ? $complaint->resolved_at->diffForHumans() : '' }}
                                     </p>
                                 @elseif($complaint->sla_resolution_deadline)
@@ -455,10 +455,10 @@
                                             default    => 'text-gray-700',
                                         };
                                     @endphp
-                                    <p class="font-semibold {{ $slaColor }}">
+                                    <p class="font-semibold {{ $slaColor }}" id="sla-resolution-deadline">
                                         {{ $resDeadline->format('d M Y H:i') }}
                                     </p>
-                                    <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                    <span id="sla-resolution-badge" class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium
                                         {{ match($slaStatus) {
                                             'BREACHED' => 'bg-red-100 text-red-600',
                                             'CRITICAL' => 'bg-orange-100 text-orange-600',
@@ -592,18 +592,85 @@ document.addEventListener('DOMContentLoaded', function() {
     const complaintId = {{ $complaint->id }};
     let currentStatus = '{{ $complaint->status }}';
 
+    const slaStatusColors = {
+        'BREACHED': { badge: 'bg-red-100 text-red-600', text: 'text-red-600' },
+        'CRITICAL': { badge: 'bg-orange-100 text-orange-600', text: 'text-orange-600' },
+        'WARNING':  { badge: 'bg-yellow-100 text-yellow-600', text: 'text-yellow-600' },
+        'SAFE':     { badge: 'bg-green-100 text-green-600', text: 'text-gray-700' },
+        'ON_TRACK': { badge: 'bg-green-100 text-green-600', text: 'text-gray-700' },
+    };
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     async function pollStatus() {
         try {
             const resp = await fetch(`/api/poll/complaint/${complaintId}/status`);
             if (!resp.ok) return;
             const data = await resp.json();
+
+            // Reload on status change for supervisor (action buttons change)
             if (data.status && data.status !== currentStatus) {
                 currentStatus = data.status;
                 window.location.reload();
+                return;
+            }
+
+            // Update Response SLA
+            const slaResponseSection = document.getElementById('sla-response-section');
+            if (data.sla_response && slaResponseSection) {
+                const sr = data.sla_response;
+                if (sr.responded) {
+                    slaResponseSection.innerHTML = `
+                        <p class="text-gray-400 text-xs uppercase">Response SLA</p>
+                        <p class="text-green-600 font-medium">✓ Responded ${escapeHtml(sr.time)}</p>
+                        <p class="text-xs text-gray-400">${escapeHtml(sr.diff)} after assignment</p>
+                    `;
+                } else {
+                    const badge = document.getElementById('sla-response-badge');
+                    const deadline = document.getElementById('sla-response-deadline');
+                    if (badge) {
+                        badge.className = `text-xs ${sr.breached ? 'text-red-500' : 'text-gray-500'}`;
+                        badge.textContent = sr.countdown;
+                    }
+                    if (deadline) {
+                        deadline.className = `font-semibold ${sr.breached ? 'text-red-600' : 'text-gray-700'}`;
+                    }
+                }
+            }
+
+            // Update Resolution SLA
+            const slaResolutionSection = document.getElementById('sla-resolution-section');
+            if (data.sla_resolution && slaResolutionSection) {
+                const sl = data.sla_resolution;
+                if (sl.resolved) {
+                    slaResolutionSection.innerHTML = `
+                        <p class="text-gray-400 text-xs uppercase">Resolution SLA</p>
+                        <p class="text-green-600 font-medium">✓ Resolved ${escapeHtml(sl.diff)}</p>
+                    `;
+                } else {
+                    const badge = document.getElementById('sla-resolution-badge');
+                    const deadline = document.getElementById('sla-resolution-deadline');
+                    const colors = slaStatusColors[sl.sla_status] || slaStatusColors['SAFE'];
+                    if (badge) {
+                        badge.className = `inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${colors.badge}`;
+                        badge.textContent = sl.sla_status;
+
+                        badge.style.transition = 'transform .3s';
+                        badge.style.transform = 'scale(1.15)';
+                        setTimeout(() => badge.style.transform = 'scale(1)', 400);
+                    }
+                    if (deadline) {
+                        deadline.className = `font-semibold ${colors.text}`;
+                    }
+                }
             }
         } catch (e) {}
     }
-    // Poll immediately, then every 5 seconds
     pollStatus();
     setInterval(pollStatus, 5000);
 });

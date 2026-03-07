@@ -4,7 +4,7 @@
     </x-slot>
 
     <div class="bg-gray-100 min-h-screen py-6 sm:py-10">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
+        <div class="max-w-6xl mx-auto space-y-6">
 
             <div class="bg-white rounded-2xl shadow-sm border p-6">
 

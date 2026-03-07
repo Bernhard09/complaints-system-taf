@@ -145,7 +145,7 @@ class DashboardController extends Controller
     public function pollAgent(Request $request)
     {
         $user = $request->user();
-        $complaints = Complaint::where('agent_id', $user->id)->get();
+        $complaints = Complaint::where('agent_id', $user->id)->with('user')->get();
 
         return response()->json([
             'active'       => $complaints->whereIn('status', ['ASSIGNED','IN_PROGRESS','WAITING_USER'])->count(),
@@ -154,15 +154,21 @@ class DashboardController extends Controller
             'resolved_today' => $complaints->where('status', 'RESOLVED')
                 ->filter(fn ($c) => $c->resolved_at && $c->resolved_at->isToday())->count(),
             'complaints'   => $complaints->map(fn ($c) => [
-                'id'     => $c->id,
-                'status' => $c->status,
+                'id'              => $c->id,
+                'status'          => $c->status,
+                'contract_number' => $c->contract_number,
+                'complaint_reason'=> $c->complaint_reason,
+                'user_name'       => $c->user->name ?? '-',
+                'sla_status'      => $c->sla_status,
+                'created_at'      => $c->created_at->diffForHumans(),
+                'url'             => route('complaints.show', $c),
             ])->values(),
         ]);
     }
 
     public function pollSupervisor()
     {
-        $complaints = Complaint::all();
+        $complaints = Complaint::with(['user', 'agent'])->get();
 
         return response()->json([
             'incoming'       => $complaints->where('status', 'SUBMITTED')->count(),
@@ -172,8 +178,32 @@ class DashboardController extends Controller
             'resolved_today' => $complaints->where('status', 'RESOLVED')
                 ->filter(fn ($c) => $c->resolved_at && $c->resolved_at->isToday())->count(),
             'complaints'     => $complaints->map(fn ($c) => [
-                'id'     => $c->id,
-                'status' => $c->status,
+                'id'              => $c->id,
+                'status'          => $c->status,
+                'contract_number' => $c->contract_number,
+                'complaint_reason'=> $c->complaint_reason,
+                'user_name'       => $c->user->name ?? '-',
+                'agent_name'      => $c->agent->name ?? '-',
+                'sla_status'      => $c->sla_status,
+                'created_at'      => $c->created_at->diffForHumans(),
+                'url'             => route('supervisor.complaints.show', $c),
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Poll user complaints list — returns status updates for complaint cards.
+     */
+    public function pollUserComplaints(Request $request)
+    {
+        $user = $request->user();
+        $complaints = Complaint::where('user_id', $user->id)->get();
+
+        return response()->json([
+            'complaints' => $complaints->map(fn ($c) => [
+                'id'         => $c->id,
+                'status'     => $c->status,
+                'sla_status' => $c->sla_status,
             ])->values(),
         ]);
     }
@@ -193,10 +223,48 @@ class DashboardController extends Controller
 
         $complaint->refresh();
 
+        // Build SLA response data
+        $slaResponse = null;
+        if ($complaint->sla_response_deadline) {
+            if ($complaint->first_response_at) {
+                $slaResponse = [
+                    'responded' => true,
+                    'time' => $complaint->first_response_at->format('d M Y H:i'),
+                    'diff' => $complaint->first_response_at->diffForHumans($complaint->assigned_at),
+                ];
+            } else {
+                $breached = now()->greaterThan($complaint->sla_response_deadline);
+                $slaResponse = [
+                    'responded' => false,
+                    'deadline' => $complaint->sla_response_deadline->format('d M Y H:i'),
+                    'breached' => $breached,
+                    'countdown' => $breached ? 'BREACHED' : $complaint->sla_response_deadline->diffForHumans(),
+                ];
+            }
+        }
+
+        $slaResolution = null;
+        if ($complaint->sla_resolution_deadline) {
+            if (in_array($complaint->status, ['RESOLVED', 'CLOSED'])) {
+                $slaResolution = [
+                    'resolved' => true,
+                    'diff' => $complaint->resolved_at ? $complaint->resolved_at->diffForHumans() : '',
+                ];
+            } else {
+                $slaResolution = [
+                    'resolved' => false,
+                    'deadline' => $complaint->sla_resolution_deadline->format('d M Y H:i'),
+                    'sla_status' => $complaint->sla_status,
+                ];
+            }
+        }
+
         return response()->json([
-            'status'     => $complaint->status,
-            'sla_status' => $complaint->sla_status,
-            'agent'      => $complaint->agent ? $complaint->agent->name : null,
+            'status'         => $complaint->status,
+            'sla_status'     => $complaint->sla_status,
+            'agent'          => $complaint->agent ? $complaint->agent->name : null,
+            'sla_response'   => $slaResponse,
+            'sla_resolution' => $slaResolution,
         ]);
     }
 }
