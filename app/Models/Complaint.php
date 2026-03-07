@@ -15,7 +15,8 @@ class Complaint extends Model
         'department_id',
         'agent_id',
         'status',
-
+        'assigned_by',
+        'resolved_at',
         // SLA
         'assigned_at',
         'first_response_at',
@@ -27,29 +28,112 @@ class Complaint extends Model
         'escalated_at',
     ];
 
+    protected $casts = [
+        'assigned_at' => 'datetime',
+        'first_response_at' => 'datetime',
+        'confirmed_at' => 'datetime',
+        'resolved_at' => 'datetime',
+        'sla_response_deadline' => 'datetime',
+        'sla_resolution_deadline' => 'datetime',
+        'escalated_at' => 'datetime',
+    ];
+
+
+    /*
+        RELATION
+    */
+
+    // department relation
     public function department()
     {
         return $this->belongsTo(Department::class);
     }
 
+    // messages relation
     public function messages()
     {
         return $this->hasMany(ComplaintMessage::class);
     }
 
+    // internal notes relation
     public function internalNotes()
     {
         return $this->hasMany(ComplaintInternalNote::class);
     }
 
-    // relation
+    // assignments history
+    public function assignments()
+    {
+        return $this->hasMany(ComplaintAssignment::class);
+    }
+
+    // attachments relation
+    public function attachments()
+    {
+        return $this->hasMany(ComplaintAttachment::class);
+    }
+
+
+    // user relation
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    // agent relation
+    public function agent()
+    {
+        return $this->belongsTo(User::class, 'agent_id');
+    }
+
+    public function scopeForAgent($query, $agentId)
+    {
+        return $query->where('agent_id', $agentId);
+    }
+
+    // supervisor relation
+    public function assignedBy()
+    {
+        return $this->belongsTo(User::class, 'assigned_by');
+    }
+
+    public function canBeReassigned(): bool
+    {
+        return in_array($this->status, ['ASSIGNED', 'IN_PROGRESS'])
+            && !$this->pendingReassignment();
+    }
+
+    public function pendingReassignment()
+    {
+        return $this->assignments()
+            ->where('status', 'PENDING')
+            ->latest()
+            ->first();
+    }
+
+    public function getSlaStatusAttribute()
+    {
+        if (!$this->sla_resolution_deadline) {
+            return null;
+        }
+
+        if (now()->greaterThan($this->sla_resolution_deadline)) {
+            return 'BREACHED';
+        }
+
+        if (now()->diffInHours($this->sla_resolution_deadline) <= 4) {
+            return 'CRITICAL';
+        }
+
+        if (now()->diffInHours($this->sla_resolution_deadline) <= 12) {
+            return 'WARNING';
+        }
+
+        return 'SAFE';
+    }
 
 
+    // SLA Breach Checkers
     public function isResponseSlaBreached(): bool
     {
         return $this->status === 'ASSIGNED'

@@ -19,7 +19,8 @@ class Department extends Model
     // (Future-proof) relasi ke agents
     public function agents()
     {
-        return $this->hasMany(User::class)
+        return $this->hasMany(User::class, 'department_id')
                     ->where('role', 'AGENT');
     }
+
 }

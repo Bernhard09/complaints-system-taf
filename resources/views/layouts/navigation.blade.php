@@ -12,9 +12,25 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    {{-- <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
-                    </x-nav-link>
+                    </x-nav-link> --}}
+                </div>
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    {{-- <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                        {{ __('Dashboard') }}
+                    </x-nav-link> --}}
+                    @if(auth()->user()->role === 'USER')
+                        <a href="{{ route('user.dashboard') }}" class="ml-4">{{ __('Dashboard') }}</a>
+                    @endif
+
+                    @if(auth()->user()->role === 'AGENT')
+                        <a href="{{ route('agent.dashboard') }}" class="ml-4">{{ __('Dashboard') }}</a>
+                    @endif
+
+                    @if(auth()->user()->role === 'SUPERVISOR')
+                        <a href="{{ route('supervisor.dashboard') }}" class="ml-4">{{ __('Dashboard') }}</a>
+                    @endif
                 </div>
             </div>
 
