@@ -2,7 +2,7 @@
 
 # Run migrations
 # php artisan migrate:fresh --force --seed
-php artisan migrate:fresh --force --seed
+php artisan migrate --force --seed
 
 php artisan key:generate --force
 
