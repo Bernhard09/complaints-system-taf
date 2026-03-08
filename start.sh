@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Run migrations
-php artisan migrate --force
+php artisan migrate --force --seed
 
 php artisan key:generate --force
 
