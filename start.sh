@@ -3,9 +3,10 @@
 # Run migrations
 php artisan migrate --force
 
+php artisan key:generate --force
+
 # Optimize Laravel
 php artisan optimize
-
 
 # Start PHP-FPM in background
 # php-fpm &
