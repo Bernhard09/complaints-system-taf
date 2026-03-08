@@ -17,7 +17,8 @@ RUN composer install --no-dev --optimize-autoloader
 RUN npm install && npm run build
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/log/nginx /var/lib/nginx
+RUN chmod -R 777 /var/www/storage /var/www/bootstrap/cache /var/log/nginx /var/lib/nginx /run/nginx
 
 # Setup nginx
 COPY nginx.conf /etc/nginx/nginx.conf
