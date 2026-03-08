@@ -6,6 +6,7 @@ php artisan migrate --force
 # Optimize Laravel
 php artisan optimize
 
+
 # Start PHP-FPM in background
 php-fpm &
 
