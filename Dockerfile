@@ -30,5 +30,5 @@ RUN chmod +x /usr/local/bin/start.sh
 
 EXPOSE 8080
 
-# CMD ["/usr/local/bin/start.sh"]
-CMD sh -c "php artisan migrate --force && php artisan optimize && /usr/sbin/nginx && php-fpm"
+CMD ["/usr/local/bin/start.sh"]
+# CMD sh -c "php artisan migrate --force && php artisan optimize && /usr/sbin/nginx && php-fpm"
