@@ -230,6 +230,31 @@
 
             @endif
 
+            {{-- =========== ADMIN SIDEBAR =========== --}}
+            @if($role === 'ADMIN')
+
+                {{-- USER MANAGEMENT --}}
+                <div class="mb-2">
+                    <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"
+                       x-show="!collapsed">
+                        {{ __('User Management') }}
+                    </p>
+                    <hr x-show="collapsed" class="mx-4 my-4 border-t-2 border-gray-300" x-cloak>
+
+                    <div class="space-y-1">
+
+                        <a href="{{ route('admin.dashboard') }}"
+                           class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+
+                            <x-heroicon-o-home class="w-5 h-5" />
+                            <span x-show="!collapsed">{{ __('Dashboard') }}</span>
+                        </a>
+
+                    </div>
+                </div>
+
+            @endif
+
             {{-- =========== ACCOUNT (shared) =========== --}}
             <div class="mt-4">
                 <p class="text-xs uppercase text-gray-400 tracking-wider mb-2 px-4"

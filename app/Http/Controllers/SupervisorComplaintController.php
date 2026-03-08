@@ -11,6 +11,8 @@ use App\Models\ComplaintInternalNote;
 
 use Illuminate\Http\Request;
 use App\Services\NotificationService;
+use App\Exports\ComplaintsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SupervisorComplaintController extends Controller
 {
@@ -333,6 +335,13 @@ class SupervisorComplaintController extends Controller
         ];
 
         return view('supervisor.sla', compact('responseTickets', 'resolutionTickets', 'metrics'));
+    }
+
+    public function exportExcel()
+    {
+        $filename = 'complaints_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new ComplaintsExport(), $filename);
     }
 
 }

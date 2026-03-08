@@ -107,6 +107,14 @@
 
                         </div>
 
+                        <a href="{{ route('agent.complaints.export') }}"
+                           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-green-600 text-white hover:bg-green-700 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3" />
+                            </svg>
+                            Download Excel
+                        </a>
+
                     </div>
 
                     {{-- ================= FILTER PANEL (auto-visible in table mode) ================= --}}

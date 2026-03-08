@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Complaint;
 use Illuminate\Http\Request;
 use App\Services\NotificationService;
+use App\Exports\ComplaintsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AgentComplaintController extends Controller
 {
@@ -418,6 +420,14 @@ class AgentComplaintController extends Controller
         }
 
         return back()->with('success', 'Reassign rejected. Complaint remains with you.');
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $agentId = $request->user()->id;
+        $filename = 'my_complaints_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new ComplaintsExport($agentId), $filename);
     }
 
 }

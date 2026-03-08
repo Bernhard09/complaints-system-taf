@@ -32,5 +32,6 @@ class UserSeeder extends Seeder
                 'department_id' => $finance->id,
             ]
         );
+
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\SupervisorComplaintController;
 use App\Http\Controllers\AgentComplaintController;
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\ComplaintMessageController;
 use App\Http\Controllers\ComplaintInternalNoteController;
 use App\Http\Controllers\DashboardController;
@@ -50,6 +51,7 @@ Route::get('/dashboard', function () {
         'USER' => redirect()->route('user.dashboard'),
         'SUPERVISOR' => redirect()->route('supervisor.dashboard'),
         'AGENT' => redirect()->route('agent.dashboard'),
+        'ADMIN' => redirect()->route('admin.dashboard'),
         default => view('dashboard'),
     };
 
@@ -190,6 +192,9 @@ Route::middleware(['auth', 'role:SUPERVISOR'])->prefix('supervisor')
         Route::get('/dashboardtemp', [SupervisorComplaintController::class, 'index'])
             ->name('supervisor.dashboard.temp');
 
+        Route::get('/complaints/export', [SupervisorComplaintController::class, 'exportExcel'])
+            ->name('supervisor.complaints.export');
+
         Route::get('/history', [SupervisorComplaintController::class, 'history'])
             ->name('supervisor.history');
 
@@ -233,6 +238,9 @@ Route::middleware(['auth', 'role:AGENT'])->prefix('agent')
     Route::get('/dashboard', [AgentComplaintController::class, 'index'])
         ->name('agent.dashboard');
 
+    Route::get('/complaints/export', [AgentComplaintController::class, 'exportExcel'])
+        ->name('agent.complaints.export');
+
         // Route::get('/agent/dashboard', [AgentComplaintController::class,'index'])
         // ->name('agent.dashboard');
 
@@ -266,6 +274,25 @@ Route::middleware(['auth', 'role:AGENT'])->prefix('agent')
 
     Route::post('/reassign/{assignment}/reject', [AgentComplaintController::class, 'rejectReassign'])
         ->name('agent.reassign.reject');
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')
+    ->group(function () {
+
+    Route::get('/dashboard', [AdminUserController::class, 'index'])
+        ->name('admin.dashboard');
+
+    Route::post('/users', [AdminUserController::class, 'store'])
+        ->name('admin.users.store');
+
+    Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])
+        ->name('admin.users.destroy');
 
 });
 

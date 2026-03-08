@@ -20,6 +20,12 @@ class ComplaintSeeder extends Seeder
             $departments[$name] = Department::firstOrCreate(['name' => $name]);
         }
 
+        // ── Admin (1 only) ──
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@test.com'],
+            ['name' => 'Admin', 'password' => Hash::make('password'), 'phone_number' => '+6281200000009', 'role' => 'ADMIN']
+        );
+
         // ── Supervisor (1 only) ──
         $supervisor = User::firstOrCreate(
             ['email' => 'supervisor@test.com'],
