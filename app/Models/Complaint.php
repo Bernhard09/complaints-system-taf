@@ -77,13 +77,13 @@ class Complaint extends Model
     // user relation
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     // agent relation
     public function agent()
     {
-        return $this->belongsTo(User::class, 'agent_id');
+        return $this->belongsTo(User::class, 'agent_id')->withTrashed();
     }
 
     public function scopeForAgent($query, $agentId)
