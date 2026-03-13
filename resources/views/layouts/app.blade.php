@@ -331,6 +331,25 @@
             }
         };
     };
+
+    // Global fetch interceptor to ensure Laravel expects JSON and doesn't save intended URL for background polling
+    const originalFetch = window.fetch;
+    window.fetch = async function() {
+        let [resource, config] = arguments;
+        if(config == null) {
+            config = {};
+        }
+        if(config.headers == null) {
+            config.headers = {};
+        }
+        if (!config.headers['X-Requested-With']) {
+            config.headers['X-Requested-With'] = 'XMLHttpRequest';
+        }
+        if (!config.headers['Accept']) {
+            config.headers['Accept'] = 'application/json';
+        }
+        return originalFetch(resource, config);
+    };
 </script>
 
 </body>
