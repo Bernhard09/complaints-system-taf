@@ -540,66 +540,85 @@
                     </x-ui.card>
 
                     {{-- Actions --}}
-                    @if(!$isResolved)
+                    @if(in_array($user->role, ['USER', 'AGENT']))
                         <x-ui.card class="p-6">
                             <h3 class="font-semibold mb-4">{{ __('Actions') }}</h3>
 
                             <div class="space-y-3">
 
-                                {{-- USER: Confirm/Reject resolution --}}
-                                @if($user->role === 'USER' && $status === 'WAITING_CONFIRMATION')
-                                    <div x-data="{ showRejectModal: false }" class="space-y-3">
-                                        <form method="POST"
-                                                action="{{ route('complaints.confirm', $complaint) }}">
-                                            @csrf
-                                            <button class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
+                                {{-- USER actions: Confirm/Reject resolution --}}
+                                @if($user->role === 'USER')
+                                    @if($status === 'WAITING_CONFIRMATION' && !$isResolved)
+                                        <div x-data="{ showRejectModal: false }" class="space-y-3">
+                                            <form method="POST"
+                                                    action="{{ route('complaints.confirm', $complaint) }}">
+                                                @csrf
+                                                <button class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
+                                                    ✓ Confirm Resolved
+                                                </button>
+                                            </form>
+
+                                            <button @click="showRejectModal = !showRejectModal"
+                                                    class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
+                                                ✕ Reject Resolution
+                                            </button>
+
+                                            {{-- Reject Modal / Inline Form --}}
+                                            <div x-show="showRejectModal" x-transition class="mt-3 bg-red-50 p-4 rounded-xl border border-red-200">
+                                                <form method="POST" action="{{ route('complaints.reject', $complaint) }}">
+                                                    @csrf
+                                                    <label class="block text-xs font-semibold text-red-700 mb-1">Reason for Rejection</label>
+                                                    <textarea name="reason" rows="3" required
+                                                              placeholder="Please explain why you are rejecting the resolution..."
+                                                              class="w-full border-red-300 rounded-lg px-3 py-2 text-sm focus:ring-red-500 focus:border-red-500"></textarea>
+                                                    <div class="flex gap-2 mt-3 justify-end">
+                                                        <button type="button" @click="showRejectModal = false" class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+                                                        <button type="submit" class="bg-red-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-red-700">Submit Rejection</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="space-y-3">
+                                            <button disabled class="w-full bg-green-600/50 text-white/50 py-2 rounded-lg cursor-not-allowed">
                                                 ✓ Confirm Resolved
                                             </button>
-                                        </form>
-
-                                        <button @click="showRejectModal = !showRejectModal"
-                                                class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
-                                            ✕ Reject Resolution
-                                        </button>
-
-                                        {{-- Reject Modal / Inline Form --}}
-                                        <div x-show="showRejectModal" x-transition class="mt-3 bg-red-50 p-4 rounded-xl border border-red-200">
-                                            <form method="POST" action="{{ route('complaints.reject', $complaint) }}">
-                                                @csrf
-                                                <label class="block text-xs font-semibold text-red-700 mb-1">Reason for Rejection</label>
-                                                <textarea name="reason" rows="3" required
-                                                          placeholder="Please explain why you are rejecting the resolution..."
-                                                          class="w-full border-red-300 rounded-lg px-3 py-2 text-sm focus:ring-red-500 focus:border-red-500"></textarea>
-                                                <div class="flex gap-2 mt-3 justify-end">
-                                                    <button type="button" @click="showRejectModal = false" class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
-                                                    <button type="submit" class="bg-red-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-red-700">Submit Rejection</button>
-                                                </div>
-                                            </form>
+                                            <button disabled class="w-full bg-red-600/50 text-white/50 py-2 rounded-lg cursor-not-allowed">
+                                                ✕ Reject Resolution
+                                            </button>
                                         </div>
-                                    </div>
+                                    @endif
                                 @endif
 
                                 {{-- AGENT actions --}}
-                                @if($user->role === 'AGENT' && !in_array($status, ['PENDING_REASSIGN', 'WAITING_CONFIRMATION']))
+                                @if($user->role === 'AGENT')
 
-                                    @if(in_array($status, ['ASSIGNED', 'IN_PROGRESS']))
+                                    @if(in_array($status, ['ASSIGNED', 'IN_PROGRESS']) && !$isResolved && !in_array($status, ['PENDING_REASSIGN']))
                                         <form method="POST"
                                                 action="{{ route('agent.complaints.waiting', $complaint) }}">
                                             @csrf
-                                            <button class="w-full bg-yellow-500 text-white py-2 rounded-lg">
+                                            <button class="w-full bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 transition">
                                                 ⏸ Mark Waiting User
                                             </button>
                                         </form>
+                                    @else
+                                        <button disabled class="w-full bg-yellow-500/50 text-white/50 py-2 rounded-lg cursor-not-allowed">
+                                            ⏸ Mark Waiting User
+                                        </button>
                                     @endif
 
-                                    @if(in_array($status, ['IN_PROGRESS', 'WAITING_USER']))
+                                    @if(in_array($status, ['IN_PROGRESS', 'WAITING_USER']) && !$isResolved && !in_array($status, ['PENDING_REASSIGN']))
                                         <form method="POST"
                                                 action="{{ route('agent.complaints.requestConfirmation', $complaint) }}">
                                             @csrf
-                                            <button class="w-full bg-blue-600 text-white py-2 rounded-lg">
+                                            <button class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
                                                 ✓ Request Resolved
                                             </button>
                                         </form>
+                                    @else
+                                        <button disabled class="w-full bg-blue-600/50 text-white/50 py-2 rounded-lg cursor-not-allowed">
+                                            ✓ Request Resolved
+                                        </button>
                                     @endif
 
                                 @endif

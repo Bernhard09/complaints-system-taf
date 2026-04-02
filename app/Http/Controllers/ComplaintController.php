@@ -89,9 +89,9 @@ class ComplaintController extends Controller
             if ($request->hasFile('attachments')) {
 
                 foreach ($request->file('attachments') as $file) {
-
-                    $path = $file->store('complaint-attachments', 's3');
-                    // $path = $file->store('complaint-attachments', 'public');
+                    
+                    // $path = $file->store('complaint-attachments', 's3');
+                    $path = $file->store('complaint-attachments', 'public');
 
                     $storedFiles[] = $path;
 
@@ -134,7 +134,8 @@ class ComplaintController extends Controller
         // Cleanup files if any stored
             if (!empty($storedFiles)) {
                 foreach ($storedFiles as $filePath) {
-                    Storage::disk('s3')->delete($filePath);
+                    // Storage::disk('s3')->delete($filePath);
+                    Storage::disk('public')->delete($filePath);
                 }
             }
 

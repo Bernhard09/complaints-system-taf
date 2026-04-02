@@ -192,6 +192,10 @@
                             >
                                 Reassign
                             </button>
+                        @else
+                            <button disabled class="text-sm text-indigo-600/50 cursor-not-allowed">
+                                Reassign
+                            </button>
                         @endif
 
                         {{-- Pending Reassign Info --}}
@@ -218,6 +222,10 @@
                                     Reopen Complaint
                                 </button>
                             </form>
+                        @else
+                            <button disabled class="text-sm text-red-600/50 cursor-not-allowed">
+                                Reopen Complaint
+                            </button>
                         @endif
 
                         {{-- Chat Link --}}

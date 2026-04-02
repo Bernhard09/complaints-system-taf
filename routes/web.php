@@ -43,8 +43,6 @@ Route::get('/test-lang', function () {
 |--------------------------------------------------------------------------
 */
 Route::get('/dashboard', function () {
-    //return view('dashboard');
-
     $user = Auth::user();
 
     return match ($user->role) {
@@ -154,11 +152,8 @@ Route::middleware(['auth', 'role:USER'])->group(function () {
     Route::get('/user/complaints', [DashboardController::class, 'complaints'])
         ->name('user.complaints');
 
-    // Route::get('/complaints', function () {
-    //     return 'USER complaints';
-    // });
 
-    // IMPORTANT: create BEFORE {complaint}
+    // create BEFORE {complaint}
     Route::get('/complaints/create', [ComplaintController::class, 'create'])
         ->name('complaints.create');
 
@@ -293,6 +288,13 @@ Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')
 
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])
         ->name('admin.users.destroy');
+
+    // Department management
+    Route::post('/departments', [AdminUserController::class, 'storeDepartment'])
+        ->name('admin.departments.store');
+
+    Route::delete('/departments/{department}', [AdminUserController::class, 'destroyDepartment'])
+        ->name('admin.departments.destroy');
 
 });
 
