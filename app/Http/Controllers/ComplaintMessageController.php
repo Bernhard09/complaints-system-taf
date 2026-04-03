@@ -41,8 +41,8 @@ class ComplaintMessageController extends Controller
 
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
-            // $data['attachment_path'] = $file->store('chat-attachments', 's3');
-            $data['attachment_path'] = $file->store('chat-attachments', 'public');
+            $data['attachment_path'] = $file->store('chat-attachments', 's3');
+            // $data['attachment_path'] = $file->store('chat-attachments', 'public');
             $data['attachment_name'] = $file->getClientOriginalName();
         }
 
@@ -101,8 +101,8 @@ class ComplaintMessageController extends Controller
 
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
-            // $data['attachment_path'] = $file->store('chat-attachments', 's3');
-            $data['attachment_path'] = $file->store('chat-attachments', 'public');
+            $data['attachment_path'] = $file->store('chat-attachments', 's3');
+            // $data['attachment_path'] = $file->store('chat-attachments', 'public');
             $data['attachment_name'] = $file->getClientOriginalName();
         }
 
@@ -164,8 +164,8 @@ class ComplaintMessageController extends Controller
                 'sender_id'   => $msg->sender_id,
                 'message'     => $msg->message,
                 'is_system'   => $msg->is_system ?? false,
-                'attachment_path' => $msg->attachment_path ? asset('storage/' . $msg->attachment_path) : null,
-                // 'attachment_path' => $msg->attachment_path ? \Storage::disk('s3')->url($msg->attachment_path) : null,
+                // 'attachment_path' => $msg->attachment_path ? asset('storage/' . $msg->attachment_path) : null,
+                'attachment_path' => $msg->attachment_path ? \Storage::disk('s3')->url($msg->attachment_path) : null,
                 'attachment_name' => $msg->attachment_name,
                 'time'        => $msg->created_at->diffForHumans(),
             ]);

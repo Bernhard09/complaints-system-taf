@@ -83,14 +83,14 @@
                                                 @endphp
                                                 <div class="mt-2">
                                                     @if($isImage)
-                                                        <a href="{{ asset('storage/' . $msg->attachment_path) }}"
+                                                        <a href="{{ Storage::disk('s3')->url($msg->attachment_path) }}"
                                                            target="_blank">
-                                                            <img src="{{ asset('storage/' . $msg->attachment_path) }}"
+                                                            <img src="{{ Storage::disk('s3')->url($msg->attachment_path) }}"
                                                                  alt="{{ $msg->attachment_name }}"
                                                                  class="rounded-lg max-h-48 cursor-pointer hover:opacity-90 transition" />
                                                         </a>
                                                     @else
-                                                        <a href="{{ asset('storage/' . $msg->attachment_path) }}"
+                                                        <a href="{{ Storage::disk('s3')->url($msg->attachment_path) }}"
                                                            target="_blank"
                                                            class="inline-flex items-center gap-1 text-xs underline opacity-80 hover:opacity-100">
                                                             📎 {{ $msg->attachment_name }}
@@ -325,14 +325,14 @@
                                                 $isImage = in_array(strtolower($ext), ['jpg','jpeg','png','webp']);
                                             @endphp
                                             @if($isImage)
-                                                <a href="{{ asset('storage/' . $attachment->file_path) }}"
+                                                <a href="{{ Storage::disk('s3')->url($attachment->file_path) }}"
                                                    target="_blank">
-                                                    <img src="{{ asset('storage/' . $attachment->file_path) }}"
+                                                    <img src="{{ Storage::disk('s3')->url($attachment->file_path) }}"
                                                          alt="{{ $attachment->file_name }}"
                                                          class="rounded-lg h-24 w-full object-cover border hover:opacity-90 transition" />
                                                 </a>
                                             @else
-                                                <a href="{{ asset('storage/' . $attachment->file_path) }}"
+                                                <a href="{{ Storage::disk('s3')->url($attachment->file_path) }}"
                                                    target="_blank"
                                                    class="flex items-center gap-1 text-xs text-indigo-600 hover:underline border rounded-lg p-2">
                                                     📎 {{ $attachment->file_name }}

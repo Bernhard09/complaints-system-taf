@@ -90,8 +90,8 @@ class ComplaintController extends Controller
 
                 foreach ($request->file('attachments') as $file) {
                     
-                    // $path = $file->store('complaint-attachments', 's3');
-                    $path = $file->store('complaint-attachments', 'public');
+                    $path = $file->store('complaint-attachments', 's3');
+                    // $path = $file->store('complaint-attachments', 'public');
 
                     $storedFiles[] = $path;
 

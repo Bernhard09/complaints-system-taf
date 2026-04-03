@@ -72,11 +72,11 @@
 
                         @foreach($complaint->attachments as $file)
 
-                            <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="block">
+                            <a href="{{ Storage::disk('s3')->url($file->file_path) }}" target="_blank" class="block">
                                 {{-- Thumbnail --}}
                                 @if(Str::contains($file->mime_type, 'image'))
                                     <img
-                                        src="{{ asset('storage/' . $file->file_path) }}"
+                                        src="{{ Storage::disk('s3')->url($file->file_path) }}"
                                         class="rounded-lg cursor-pointer border hover:opacity-90 transition"
                                     >
                                 @else
